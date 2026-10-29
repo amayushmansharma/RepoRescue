@@ -1,0 +1,34 @@
+{
+  "name": "reporescue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RepoRescue — open-source contribution-readiness scanner and remediation workflow (React + Vite client, Node + Express API).",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "npm --workspace client run dev",
+    "dev:server": "npm --workspace server run dev",
+    "build": "npm --workspace client run build",
+    "start": "node server/src/server.js",
+    "lint": "eslint .",
+    "test": "node --test tests/unit/*.test.js tests/integration/*.test.js",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "verify": "npm run lint && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0"
+  }
+}

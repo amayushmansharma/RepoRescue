@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds and caches
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# environment files (templates are committed, real values are not)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# test output
+coverage/
+.nyc_output/
+/tmp/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+.idea/
+out/
+target/
+build/
+.gradle/
