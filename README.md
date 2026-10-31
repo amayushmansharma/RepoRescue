@@ -24,7 +24,8 @@ SCAN → FIND → FIX → REVIEW → VERIFY
 It is a working full-stack application, not a mockup: the UI calls real JSON REST endpoints, findings come from deterministic rules over real scanned evidence, patches are generated and syntax-validated on the server, review ZIPs are generated from the selected patch set, and verification records are persisted and retrievable by id.
 
 > **Reference-source note:** the requested `build-reporescue-web-app (9).zip` / original `index.html` is not present in this workspace, so a byte-for-byte source audit was not possible. The implementation preserves the current product workflow and has been styled to the supplied dark tinted-glass visual directive (smoky charcoal-mauve outer frame, near-black inner panels, muted lavender-blush gradients, diffused ambient light); it does not claim a pixel-perfect reproduction of an image that was not delivered as an inspectable asset. See [`docs/REFERENCE_AUDIT.md`](docs/REFERENCE_AUDIT.md) for the auditable migration inventory and re-audit procedure.
-
+>
+> <h2>live link- https://reporescue1.onrender.com</h2>
 ---
 
 ## 1. What problem it solves
