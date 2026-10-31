@@ -1,10 +1,10 @@
 import { ApiError } from "../http/errors.js";
-import { githubLoginOrigin } from "./github-app-config.js";
+import { githubApiOrigin, githubLoginOrigin, validateGithubLogin } from "./github-app-config.js";
 
 const GITHUB_UA = "RepoRescue/1.0 (GitHub OAuth Authorization Code Flow)";
 
 export function githubOauthError(status, details) {
-  const text = details?.description ?? details?.message ?? `GitHub authorization failed with status ${status}.`;
+  const text = details?.error_description ?? details?.description ?? details?.message ?? `GitHub authorization failed with status ${status}.`;
   if (details?.error === "access_denied") {
     return new ApiError("USER_CANCELLED", "GitHub authorization was not completed.");
   }
@@ -63,13 +63,47 @@ export async function exchangeAuthorizationCode({
   };
 }
 
+export async function fetchGithubUserProfile(accessToken, {
+  fetchImplementation = globalThis.fetch,
+  apiOrigin = githubApiOrigin(),
+  timeoutMs = 10_000,
+} = {}) {
+  const response = await fetchImplementation(`${apiOrigin}/user`, {
+    method: "GET",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": GITHUB_UA,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    signal: AbortSignal.timeout(timeoutMs),
+    cache: "no-store",
+  });
 
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw githubOauthError(response.status, errorBody);
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!payload || typeof payload !== "object" || !payload.login) {
+    throw new ApiError("UPSTREAM_ERROR", "GitHub user profile could not be retrieved.");
+  }
+
+  const login = validateGithubLogin(payload.login);
+  return {
+    login,
+    id: payload.id ?? null,
+    name: payload.name ?? login,
+    avatarUrl: typeof payload.avatar_url === "string" ? payload.avatar_url : null,
+  };
+}
 
 export function githubLoginUrl({
   clientId,
   redirectUri,
   state,
-  scopes = "repo:pull_requests repo:contents repo:metadata",
+  scopes = "read:user public_repo",
 }) {
   const url = new URL("/login/oauth/authorize", githubLoginOrigin());
   url.searchParams.set("client_id", clientId);

@@ -66,6 +66,8 @@ export const api = {
         }),
     getScanProgress: (progressId, signal) => request(`/api/scans/progress/${encodeURIComponent(progressId)}`, { signal }),
     getScan: (scanId, signal) => request(`/api/scans/${encodeURIComponent(scanId)}`, { signal }),
+    explainFinding: (scanId, findingId, signal) => request(`/api/scans/${encodeURIComponent(scanId)}/findings/${encodeURIComponent(findingId)}/explain`, { signal }),
+    getOpportunities: (scanId, signal) => request(`/api/scans/${encodeURIComponent(scanId)}/opportunities`, { signal }),
     rescan: (scanId) => request(`/api/scans/${encodeURIComponent(scanId)}/rescan`, { method: "POST" }),
     preview: (scanId, findingIds, signal) => request("/api/remediations/preview", {
         method: "POST",
@@ -80,6 +82,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ scanId, findingIds, ...(verificationId ? { verificationId } : {}) }),
     }),
+    submitPullRequest: (scanId, findingIds, payload = {}) => request("/api/pull-requests", {
+        method: "POST",
+        body: JSON.stringify({ scanId, findingIds, ...payload }),
+    }),
+    getPullRequests: (scanId) => request(`/api/pull-requests/${encodeURIComponent(scanId)}`),
     runVerification: (scanId, findingIds) => request("/api/verifications", {
         method: "POST",
         body: JSON.stringify({ scanId, findingIds }),
@@ -121,5 +128,12 @@ export const api = {
         const disposition = response.headers.get("content-disposition") ?? "";
         const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? "reborescue-review-export.zip";
         return { blob: await response.blob(), filename };
+    },
+    getAuthConfig: () => request("/api/auth/config"),
+    getSession: () => request("/api/auth/session"),
+    logout: () => request("/api/auth/logout", { method: "POST" }),
+    getGithubLoginUrl: (options = {}) => {
+        const query = options?.remember ? "?remember=true" : "";
+        return request(`/api/auth/github/login${query}`, { headers: { Accept: "application/json" } });
     },
 };

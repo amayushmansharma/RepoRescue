@@ -33,6 +33,16 @@
   --lemon-14: rgba(255, 242, 26, 0.14);
   --lemon-04: rgba(255, 242, 26, 0.04);
 
+  /* ---- Semantic accents ---- */
+  --red: #ef4444;
+  --red-15: rgba(239, 68, 68, 0.15);
+  --amber: #f59e0b;
+  --amber-15: rgba(245, 158, 11, 0.15);
+  --green: #22c55e;
+  --green-15: rgba(34, 197, 94, 0.15);
+  --emerald: #10b981;
+  --emerald-15: rgba(16, 185, 129, 0.15);
+
   /* ---- Neutrals ---- */
   --grey-100: #f5f5f5;
   --grey-200: #e3e3e3;
@@ -216,6 +226,20 @@ body {
   border-radius: 8px;
 }
 
+/* Fix accidental heading outlines from programmatic focus resets while preserving interactive focus */
+h1:focus,
+h1:focus-visible,
+h2:focus,
+h2:focus-visible,
+h3:focus,
+h3:focus-visible,
+h4:focus,
+h4:focus-visible,
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none !important;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -271,9 +295,9 @@ a {
 
 .shell {
   width: 100%;
-  max-width: 1320px;
+  max-width: 1420px;
   margin: 0 auto;
-  padding: 0 clamp(14px, 1.6vw, 26px);
+  padding: 0 clamp(16px, 2vw, 32px);
 }
 
 /* ---------------------------- Typography --------------------------- */
@@ -544,39 +568,50 @@ h4 {
   letter-spacing: 0.015em;
 }
 
-/* Severity: lemon reserved for the rarest states, so critical/high read as
-   bright neutral, medium as lavender, low/info as plain neutral. */
+/* Severity & Status badges: clear semantic distinction */
 .badge-critical,
 .badge-high {
-  color: var(--grey-100);
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.26);
+  color: #fee2e2;
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.55);
+  font-weight: 600;
 }
 
 .badge-fail {
-  color: var(--grey-100);
-  background: var(--tone-bad-bg);
-  border-color: var(--grey-500);
+  color: #fee2e2;
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.55);
+  font-weight: 600;
 }
 
-.badge-medium {
-  color: var(--lavender-bright);
-  background: var(--lavender-07);
-  border-color: rgba(166, 104, 255, 0.5);
-  border-style: dashed;
+.badge-medium,
+.badge-warn {
+  color: #fef3c7;
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.55);
+  font-weight: 600;
 }
 
 .badge-low,
 .badge-info {
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
-.badge-pass {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.055);
-  border-color: var(--border-strong);
+.badge-pass,
+.badge-ok {
+  color: #dcfce7;
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.5);
+  font-weight: 600;
+}
+
+.badge-emerald {
+  color: #d1fae5;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.6);
+  font-weight: 700;
 }
 
 .badge-skip {
@@ -634,7 +669,7 @@ h4 {
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(0.5px);
+  transform: scale(0.98);
 }
 
 .btn:disabled {
@@ -866,6 +901,7 @@ input[type="checkbox"] {
   border-radius: var(--radius-pill);
   background: var(--lavender);
   box-shadow: 0 0 12px rgba(166, 104, 255, 0.45);
+  transition: width 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Mid/low score metres read lavender / neutral instead of colour-coded reds. */
@@ -881,7 +917,8 @@ input[type="checkbox"] {
 
 /* Score ring */
 .ring-arc {
-  filter: drop-shadow(0 0 7px rgba(166, 104, 255, 0.35));
+  filter: drop-shadow(0 0 8px rgba(166, 104, 255, 0.4));
+  transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
 }
 
 /* ------------------------------- Diffs ----------------------------- */
@@ -930,23 +967,25 @@ input[type="checkbox"] {
 }
 
 .diff-add {
-  background: rgba(166, 104, 255, 0.14);
-  color: var(--text);
-  box-shadow: inset 2px 0 0 var(--lavender);
+  background: rgba(34, 197, 94, 0.12);
+  color: #f0fdf4;
+  box-shadow: inset 3px 0 0 #22c55e;
 }
 
 .diff-add .sign {
-  color: var(--lavender-text);
+  color: #22c55e;
+  font-weight: 700;
 }
 
 .diff-del {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--grey-400);
-  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.22);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fef2f2;
+  box-shadow: inset 3px 0 0 #ef4444;
 }
 
 .diff-del .sign {
-  color: var(--grey-500);
+  color: #ef4444;
+  font-weight: 700;
 }
 
 .diff-meta {
@@ -956,6 +995,102 @@ input[type="checkbox"] {
 
 .diff-ctx {
   color: var(--grey-400);
+}
+
+/* ------------------- Collapsible Disclosures & Transformation ------------------- */
+.disclosure-box {
+  border: 1px solid var(--surface-solid-border);
+  border-radius: var(--radius-md);
+  background: rgba(23, 23, 23, 0.45);
+  overflow: hidden;
+  margin-top: 14px;
+}
+
+.disclosure-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.025);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.disclosure-summary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.disclosure-summary:focus-visible {
+  outline: 2px solid var(--lavender);
+  outline-offset: -2px;
+}
+
+.disclosure-content {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--surface-solid-border);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+/* Verify page transformation hero */
+.transformation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 22px 28px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(23, 23, 23, 0.9), rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.improvement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  color: #34d399;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+  animation: rr-pop 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rr-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rr-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: rr-fade-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ------------------------------ Stages ----------------------------- */
@@ -1176,7 +1311,7 @@ input[type="checkbox"] {
   background-image: var(--glass-neutral-fill);
   background-color: rgba(23, 23, 23, 0.55);
   box-shadow: var(--shadow-inset-soft);
-  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+  transition: transform var(--fast) var(--ease), border-color var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
 }
 
 .finding::before {
@@ -1191,6 +1326,7 @@ input[type="checkbox"] {
 }
 
 .finding:hover {
+  transform: translateY(-1px);
   border-color: var(--glass-lavender-border);
   box-shadow: var(--glass-lavender-glow);
 }
@@ -1205,6 +1341,24 @@ input[type="checkbox"] {
   background-image: var(--glass-lavender-fill);
   background-color: rgba(23, 23, 23, 0.6);
   box-shadow: var(--glass-lavender-glow);
+}
+
+/* Finding severity accents */
+.finding[data-severity="critical"],
+.finding[data-severity="high"],
+.finding[data-priority="high"] {
+  border-left: 3px solid var(--red);
+}
+
+.finding[data-severity="medium"],
+.finding[data-priority="medium"] {
+  border-left: 3px solid var(--amber);
+}
+
+.finding[data-severity="low"],
+.finding[data-severity="info"],
+.finding[data-priority="low"] {
+  border-left: 3px solid var(--border-soft);
 }
 
 .finding-head {
@@ -1229,6 +1383,49 @@ input[type="checkbox"] {
   line-height: 1.42;
   color: var(--grey-100);
   letter-spacing: -0.012em;
+}
+
+/* Beginner-friendly explanation callout */
+.simple-explainer {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  text-align: left;
+}
+
+.simple-explainer-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  color: var(--lemon);
+  margin-bottom: 3px;
+}
+
+.simple-explainer-meaning {
+  display: block;
+  font-size: 12.3px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.simple-explainer-impact {
+  display: block;
+  font-size: 11.6px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.simple-explainer-impact strong {
+  font-weight: 600;
+  color: var(--text-soft);
 }
 
 .finding-detail {
@@ -1412,7 +1609,7 @@ input[type="checkbox"] {
   font: inherit;
   cursor: pointer;
   box-shadow: var(--shadow-inset-soft);
-  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+  transition: transform var(--fast) var(--ease), border-color var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
 }
 
 .demo-card::before {
@@ -1428,9 +1625,14 @@ input[type="checkbox"] {
 
 /* Hovered / selected demo card: lavender glass */
 .demo-card:hover:not(:disabled) {
+  transform: translateY(-2px);
   border-color: var(--glass-lavender-border);
   background-image: var(--glass-lavender-fill);
   box-shadow: var(--glass-lavender-glow);
+}
+
+.demo-card:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .demo-card:hover:not(:disabled)::before {
@@ -1710,10 +1912,6 @@ input[type="checkbox"] {
 .scan-phase-meter span[data-filled="true"] {
   background: var(--lavender);
   box-shadow: 0 0 10px rgba(166, 104, 255, 0.45);
-}
-
-@media (prefers-reduced-motion: reduce) {
-
 }
 
 /* ---------------------------- Responsive --------------------------- */

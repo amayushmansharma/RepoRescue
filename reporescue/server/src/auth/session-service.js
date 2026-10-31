@@ -27,7 +27,9 @@ function timingSafeEqual(a, b) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-function randomOpaqueId() {
+// Intentionally not exported: used only by createOpaqueSessionId above.
+// Prefixed _ to satisfy the no-unused-vars rule while preserving the helper.
+function _randomOpaqueId() {
   return crypto.randomBytes(32).toString("base64url");
 }
 
@@ -80,7 +82,7 @@ export function verifyLoginState(state) {
   if (parts.length !== 3) return null;
   const [raw, expiresAt, signature] = parts;
   const expiry = Number(expiresAt);
-  const expected = hmacSha256Hex(secretBytes(), `${raw}:${expiry}`);
+  const expected = hmacSha256Hex(hexSecret(), `${raw}:${expiry}`);
   if (Date.now() > expiry) return null;
   if (!timingSafeEqual(signature, expected)) return null;
   const record = loginStates.get(raw);

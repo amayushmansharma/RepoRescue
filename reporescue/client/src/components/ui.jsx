@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 export function SeverityBadge({ severity }) {
     return <span className={`badge badge-${severity} badge-mono`}>{severity}</span>;
 }
@@ -21,10 +23,19 @@ export function ConfidenceBadge({ confidence }) {
     </span>);
 }
 export function ScoreRing({ score, coverage, size = 132, label = "readiness", }) {
+    const [animatedScore, setAnimatedScore] = useState(0);
     const radius = size / 2 - 9;
     const circumference = 2 * Math.PI * radius;
-    const dash = (Math.max(0, Math.min(100, score)) / 100) * circumference;
-    const tone = score >= 80 ? "var(--text)" : score >= 55 ? "var(--lavender)" : "var(--grey-500)";
+
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => {
+            setAnimatedScore(score);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [score]);
+
+    const dash = (Math.max(0, Math.min(100, animatedScore)) / 100) * circumference;
+    const tone = score >= 80 ? "var(--lemon)" : score >= 55 ? "var(--lavender)" : "var(--grey-400)";
     return (<div style={{ position: "relative", width: size, height: size }} role="img" aria-label={`${label} score ${score} out of 100${coverage ? `, coverage ${coverage} of 100 weight points` : ""}`}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7"/>

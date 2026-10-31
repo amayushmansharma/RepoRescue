@@ -250,31 +250,28 @@ export function ScanSummary() {
             </div>
           </div>) : null}
 
-        <div className="alert alert-warn" style={{ marginTop: 16 }}>
-          <span aria-hidden="true">!</span>
-          <div>
-            <strong style={{ display: "block", marginBottom: 4 }}>Score limitations</strong>
-            <ul className="clean-list">
-              {scan.score.limitations.map((limitation) => (<li key={limitation}>
-                  <span className="bullet" aria-hidden="true"/>
-                  <span>{limitation}</span>
-                </li>))}
-            </ul>
-          </div>
-        </div>
+        {scan.score.limitations.length > 0 ? (
+          <details className="disclosure-box" style={{ marginTop: 16 }}>
+            <summary className="disclosure-summary">
+              <span>Score methodology &amp; limitations ({scan.score.limitations.length})</span>
+            </summary>
+            <div className="disclosure-content">
+              <ul className="clean-list">
+                {scan.score.limitations.map((limitation) => (<li key={limitation}>
+                    <span className="bullet" aria-hidden="true"/>
+                    <span>{limitation}</span>
+                  </li>))}
+              </ul>
+            </div>
+          </details>
+        ) : null}
       </section>
 
       <section className="glass panel" aria-labelledby="limitations-title">
         <h2 id="limitations-title" className="section-title">
-          Analysis limitations
+          Analysis snapshot details
         </h2>
-        <ul className="clean-list" style={{ marginTop: 12 }}>
-          {scan.limitations.map((limitation) => (<li key={limitation}>
-              <span className="bullet" aria-hidden="true"/>
-              <span>{limitation}</span>
-            </li>))}
-        </ul>
-        <div className="subtle panel-tight" style={{ marginTop: 14 }}>
+        <div className="subtle panel-tight" style={{ marginTop: 12 }}>
           <p className="mono dim" style={{ fontSize: 10.5, letterSpacing: "0.08em" }}>
             FILES WITH CONTENT IN THIS SNAPSHOT
           </p>
@@ -283,6 +280,21 @@ export function ScanSummary() {
             {scan.snapshot.treeCount > scan.snapshot.paths.length ? ` · +${scan.snapshot.treeCount - scan.snapshot.paths.length} more listed` : ""}
           </p>
         </div>
+        {scan.limitations.length > 0 ? (
+          <details className="disclosure-box" style={{ marginTop: 12 }}>
+            <summary className="disclosure-summary">
+              <span>Analysis limitations &amp; caveats ({scan.limitations.length})</span>
+            </summary>
+            <div className="disclosure-content">
+              <ul className="clean-list">
+                {scan.limitations.map((limitation) => (<li key={limitation}>
+                    <span className="bullet" aria-hidden="true"/>
+                    <span>{limitation}</span>
+                  </li>))}
+              </ul>
+            </div>
+          </details>
+        ) : null}
       </section>
     </div>);
 }

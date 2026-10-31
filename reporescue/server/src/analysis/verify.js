@@ -123,7 +123,7 @@ export function runLocalVerification(input) {
         remote: {
             ci: "not-run",
             pullRequest: "not-run",
-            reason: "GitHub writes are disabled in this build. No branch, commit or pull request exists, so remote CI, review and merge state cannot be reported as evidence.",
+            reason: "Local validation only. Remote CI and pull request evidence become available once a pull request is submitted to GitHub.",
         },
         limitations: [
             "Local validation only: proposed content was applied to an in-memory snapshot, not to a checkout of the repository.",

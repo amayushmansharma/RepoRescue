@@ -129,17 +129,26 @@ export function VerifyWorkspace() {
                   </StatusRow>
                 </div>
               </div>
-              {record.comparison ? (<div className="flex items-center gap-4">
-                  <div style={{ textAlign: "center" }}>
-                    <ScoreRing score={record.comparison.beforeScore} size={104} label="before"/>
+              {record.comparison ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-4">
+                    <div style={{ textAlign: "center" }}>
+                      <ScoreRing score={record.comparison.beforeScore} size={96} label="before"/>
+                    </div>
+                    <span aria-hidden="true" style={{ color: "var(--lavender)", fontSize: 24, fontWeight: 700 }}>
+                      →
+                    </span>
+                    <div style={{ textAlign: "center" }}>
+                      <ScoreRing score={record.comparison.afterScore} size={96} label="improved"/>
+                    </div>
                   </div>
-                  <span aria-hidden="true" style={{ color: "var(--text-dim)", fontSize: 20 }}>
-                    →
-                  </span>
-                  <div style={{ textAlign: "center" }}>
-                    <ScoreRing score={record.comparison.afterScore} size={104} label="after"/>
-                  </div>
-                </div>) : null}
+                  {record.comparison.afterScore > record.comparison.beforeScore ? (
+                    <div className="improvement-badge">
+                      +{record.comparison.afterScore - record.comparison.beforeScore} readiness improvement
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2" style={{ marginTop: 18 }}>
@@ -274,28 +283,34 @@ export function VerifyWorkspace() {
               </div>
             </section>) : null}
 
-          <section className="glass panel" aria-labelledby="verify-limits-title">
-            <h2 id="verify-limits-title" className="section-title" style={{ fontSize: "1.02rem" }}>
-              Limitations of this evidence
-            </h2>
-            <ul className="clean-list" style={{ marginTop: 12 }}>
-              {record.limitations.map((limitation) => (<li key={limitation}>
-                  <span className="bullet bullet-rose" aria-hidden="true"/>
-                  <span>{limitation}</span>
-                </li>))}
-            </ul>
-            <div className="btn-row" style={{ marginTop: 16 }}>
-              <Link className="btn btn-ghost" to={`/scan/${scan.scanId}/review`}>
-                Back to review
-              </Link>
-              <Link className="btn btn-ghost" to={`/scan/${scan.scanId}/findings`}>
-                Remaining findings
-              </Link>
-              <button type="button" className="btn btn-primary" onClick={runVerification} disabled={loading || selected.length === 0}>
-                Re-run verification
-              </button>
+          <div className="btn-row" style={{ marginTop: 20 }}>
+            <Link className="btn btn-ghost" to={`/scan/${scan.scanId}/review`}>
+              Back to review
+            </Link>
+            <Link className="btn btn-ghost" to={`/scan/${scan.scanId}/findings`}>
+              Remaining findings
+            </Link>
+            <button type="button" className="btn btn-primary" onClick={runVerification} disabled={loading || selected.length === 0}>
+              Re-run verification
+            </button>
+          </div>
+
+          <details className="disclosure-box" style={{ marginTop: 20 }}>
+            <summary className="disclosure-summary">
+              <span>Verification assumptions &amp; test limitations ({record.limitations.length})</span>
+            </summary>
+            <div className="disclosure-content">
+              <p className="dim" style={{ fontSize: 12, marginBottom: 10 }}>
+                RepoRescue evaluates structural patterns, syntax compliance, and known defect signatures in an isolated analysis container. Real-world execution may reveal further environmental dependencies.
+              </p>
+              <ul className="clean-list">
+                {record.limitations.map((limitation) => (<li key={limitation}>
+                    <span className="bullet bullet-rose" aria-hidden="true"/>
+                    <span>{limitation}</span>
+                  </li>))}
+              </ul>
             </div>
-          </section>
+          </details>
         </>) : null}
     </div>);
 }

@@ -32,8 +32,3 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
-.idea/
-out/
-target/
-build/
-.gradle/

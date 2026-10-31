@@ -1,9 +1,12 @@
 node_modules/
 client/dist/
 server/data/
+server/server/
+data/
 .env
 .env.*
 !.env.example
 *.log
 .DS_Store
 coverage/
+.idea/

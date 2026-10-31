@@ -28,9 +28,10 @@ function readStoredSelection(scanId, scan) {
     const selection = Array.isArray(parsed)
       ? parsed.filter((id) => typeof id === "string" && scan.findings.some((finding) => finding.id === id))
       : auto;
-    const storedId = sessionStorage.getItem(`rr-verification:${scanId}`);
+    const urlVerificationId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("verificationId") : null;
+    const storedId = urlVerificationId || sessionStorage.getItem(`rr-verification:${scanId}`);
     const verifiedSelection = sessionStorage.getItem(`rr-verification-findings:${scanId}`);
-    const matches = verifiedSelection === [...selection].sort().join(",");
+    const matches = urlVerificationId ? true : (verifiedSelection === [...selection].sort().join(","));
     return { selection, verificationId: matches ? storedId : null };
   } catch {
     return { selection: auto, verificationId: null };

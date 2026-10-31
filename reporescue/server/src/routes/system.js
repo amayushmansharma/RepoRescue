@@ -9,6 +9,9 @@ import { storageStatus } from "../storage/scan-store.js";
 import { readProgress } from "../services/scan-progress.js";
 import { DIMENSION_LABELS, DIMENSION_WEIGHTS } from "../../../shared/constants.js";
 import { SCORE_FORMULA_TEXT } from "../../../shared/scoring-text.js";
+import { geminiAvailable } from "../ai/gemini.js";
+import { githubAppReady } from "../github/github-app-config.js";
+import { sessionForRequest } from "../auth/auth-service.js";
 
 export const systemRouter = Router();
 
@@ -20,6 +23,7 @@ export const API_ROUTES = [
   ["GET", "/api/scans", "Recent scan history"],
   ["GET", "/api/scans/:scanId", "Client-safe assessment (no repository file bodies)"],
   ["GET", "/api/scans/:scanId/findings", "Filtered findings (severity, category, q, sort, fixable)"],
+  ["GET", "/api/scans/:scanId/findings/:findingId/explain", "Contextual finding explanation with deterministic fallback"],
   ["GET", "/api/scans/:scanId/score", "Dimension breakdown, deductions and limitations"],
   ["GET", "/api/scans/:scanId/report", "Assessment and score in one payload"],
   ["POST", "/api/scans/:scanId/rescan", "Fresh evidence, new scan record"],
@@ -27,28 +31,46 @@ export const API_ROUTES = [
   ["POST", "/api/remediations/preview", "Rule-based patches and diffs for selected findings"],
   ["POST", "/api/remediations/validate", "Server-side validation of regenerated patches"],
   ["POST", "/api/pull-requests/preview", "PR title, branch, description and checklist (preview only)"],
-  ["POST", "/api/pull-requests", "Always 501 NOT_CONFIGURED: remote writes are disabled"],
+  ["POST", "/api/pull-requests", "Create fork, branch, commit approved changes, and open PR via authenticated user account"],
   ["POST", "/api/verifications", "Record a local verification"],
   ["GET", "/api/verifications/:id", "Retrieve recorded verification evidence"],
 ];
 
 systemRouter.get(
   "/health",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const storage = await storageStatus();
+    const session = sessionForRequest(req);
+    let remoteWritesStatus = "disabled";
+    if (githubAppReady()) {
+      if (session?.accessToken) {
+        const hasScope = session.scopes?.includes("public_repo") || session.scopes?.includes("repo");
+        remoteWritesStatus = hasScope
+          ? "enabled (fork and pull request delivery)"
+          : "requires-reauth (grant public_repo scope)";
+      } else {
+        remoteWritesStatus = "requires-auth (sign in with GitHub to enable PR delivery)";
+      }
+    }
+
+    const githubTokenStatus = session?.accessToken
+      ? "configured (authenticated user session, server-side only)"
+      : githubAccessMode() === "authenticated"
+        ? "configured (server-side only)"
+        : "not configured (public, anonymous GitHub access)";
+
     res.status(200).json({
       ok: true,
       service: "reporescue",
       time: new Date().toISOString(),
       checks: {
         storage: `${storage.mode}: ${storage.detail}`,
-        githubToken:
-          githubAccessMode() === "authenticated"
-            ? "configured (server-side only)"
-            : "not configured (public, anonymous GitHub access)",
-        llm: "not used: findings come from deterministic rules",
+        githubToken: githubTokenStatus,
+        llm: geminiAvailable()
+          ? "configured (Gemini Flash, server-side)"
+          : "not used: findings come from deterministic rules",
         reviewExport: "available (server-generated ZIP; no GitHub write)",
-        remoteWrites: "disabled",
+        remoteWrites: remoteWritesStatus,
       },
     });
   }),
@@ -81,7 +103,7 @@ systemRouter.get(
 
 systemRouter.get(
   "/config/capabilities",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const fixture = DEMO_FIXTURES[0];
     const snapshot = buildSnapshot({
       repository: fixture.repository,
@@ -93,15 +115,52 @@ systemRouter.get(
     });
     const { checks } = evaluateRepository(snapshot);
     const storage = await storageStatus();
+    const session = sessionForRequest(req);
+    const hasWriteScope = Boolean(session?.scopes?.includes("public_repo") || session?.scopes?.includes("repo"));
+
     sendOk(res, {
       capabilities: {
         demoScan: { available: true, note: "Deterministic bundled fixtures; no network or credentials needed." },
-        liveScan: { available: true, accessMode: githubAccessMode(), note: "Read-only GitHub REST + raw file access for public repositories." },
+        liveScan: {
+          available: true,
+          accessMode: session?.accessToken ? "authenticated" : githubAccessMode(),
+          authenticatedUser: session?.userId ?? session?.user?.login ?? null,
+          rateLimitTier: session?.accessToken ? "5000/hr (authenticated)" : "60/hr (anonymous)",
+          note: session?.accessToken
+            ? "Authenticated GitHub REST + raw file access (higher rate limit, authenticated user session)."
+            : "Read-only GitHub REST + raw file access for public repositories.",
+        },
         reviewExport: { available: true, note: "Server-generated ZIP; contains proposals only." },
         localVerification: { available: true, note: "Rule re-evaluation against an in-memory patched workspace." },
-        githubDelivery: { available: false, state: "not-configured", note: "No fork, branch, commit or pull request is ever created in this build." },
-        remoteCi: { available: false, state: "not-run", note: "No commit is pushed, so no CI evidence can exist." },
-        aiAssistance: { available: false, note: "Not used. Findings and patches come from deterministic rules." },
+        githubDelivery: {
+          available: githubAppReady(),
+          state: !githubAppReady()
+            ? "not-configured"
+            : session?.accessToken
+              ? (hasWriteScope ? "enabled" : "requires-reauth")
+              : "requires-auth",
+          hasWriteScope,
+          note: !githubAppReady()
+            ? "OAuth not configured. Delivery disabled."
+            : session?.accessToken
+              ? (hasWriteScope
+                ? "Pull request delivery active via your authenticated GitHub fork and branch."
+                : "Additional public_repo permission required. Re-authorize to enable PR delivery.")
+              : "Sign in with GitHub to enable automated fork and pull request delivery.",
+        },
+        remoteCi: { available: false, state: "not-run", note: "CI verification runs in GitHub Actions after a PR is opened." },
+        aiAssistance: {
+          available: geminiAvailable(),
+          note: geminiAvailable()
+            ? "Optional Gemini assistance active for finding explanations; core scoring remains deterministic."
+            : "Not used. Findings and patches come from deterministic rules.",
+        },
+        githubAuth: {
+          available: githubAppReady(),
+          note: githubAppReady()
+            ? "GitHub OAuth configured (read:user and public_repo for fork & PR creation; no private repo access)."
+            : "Not configured. Demo mode and guest scanning run without authentication.",
+        },
         storage,
       },
       scoring: {

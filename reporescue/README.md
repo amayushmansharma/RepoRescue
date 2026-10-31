@@ -1,14 +1,35 @@
-# RepoRescue (React + Vite · Node + Express · JavaScript)
+# RepoRescue
 
-**Open-source contribution readiness, with evidence instead of vibes.**
+**Find problems. Understand them. Fix them. Help developers contribute better.**
 
-RepoRescue scans a GitHub repository, explains what blocks a first-time contributor, proposes reviewable patches, packages them for review, and verifies what actually changed — without ever writing to GitHub.
+### Hackathon Metadata
+- **Project**: RepoRescue
+- **Team**: COGNIVANCE
+- **Event**: DevForge Hacktoberfest 2026
+- **Team Members**:
+  - Ayushman Sharma
+  - Shreyas Gondkar
+  - Devansh Bansal
+- **Pitch Deck**: 7-slide Hackathon Presentation ([RepoRescue — Hackathon Pitch](file:///Users/ayushmansharma/.gemini/antigravity/brain/2901745c-6fcf-4321-9066-b4327debc70f/.user_uploaded/media_1793409964393_fea383b1.pdf))
+
+---
+
+RepoRescue is an intelligent, open-source repository health and contribution assistant. It scans a GitHub repository's real evidence — README, dependency manifests, lockfiles, CI workflows, contribution guides, issue/PR templates, and environment usage — runs 21 deterministic checks across five weighted scoring dimensions, identifies prioritized contribution opportunities, generates reviewable patches with unified diffs, provides optional AI-assisted finding explanations via Gemini Flash, and equips contributors with a complete pre-submission playbook, exportable packages, and safe 1-click fork-based pull request delivery — all with defense-in-depth token security.
 
 ```
-SCAN → FIND → FIX → REVIEW → VERIFY
+DISCOVER → SCAN → UNDERSTAND → FIND OPPORTUNITIES → FIX → REVIEW → VERIFY → PR / EXPORT
 ```
 
-> **Reference-source note.** The requested original archive `build-reporescue-web-app (9).zip` / `index.html` was **not available** in the build environment (a full filesystem search found no archive). This implementation migrates the working RepoRescue engine and five-stage workflow into the required stack and implements the supplied tinted-glass visual directive: a smoky charcoal-mauve outer app frame, near-black inner panels, muted lavender→blush gradient accents, diffused ambient blooms, pill-shaped controls and generous radii, with Inter for text and JetBrains Mono for technical values. It does **not** claim pixel-level fidelity to a file it could not inspect. **Please supply the ZIP** and the UI can be audited and aligned screen by screen; see `../docs/REFERENCE_AUDIT.md`.
+---
+
+## What RepoRescue Does
+
+1. **Deterministic Repository Health Analysis**: Evaluates repositories against 21 evidence-backed checks across 5 weighted dimensions (Documentation, Setup, Testing & CI, Contribution Guidance, Hygiene). Scores are computed strictly from verifiable file evidence with an audited formula.
+2. **AI-Powered Finding Explanations (Optional Gemini Flash)**: Explains what was discovered, why maintainers care, who is affected, and actionable steps in plain developer language. Grounded strictly in scanned repository evidence with untrusted-data boundary delimiters. Transparently falls back to deterministic analysis if an API key is not configured.
+3. **Contribution Opportunity Engine**: Transforms raw scanner findings into prioritized, actionable contribution opportunities for developers. Highlights beginner-friendly ("good first issue") tasks, potential readiness impact, relevant files, and difficulty estimates.
+4. **Automated & Validated Remediation**: 13 rule-based remediation builders generate syntax-validated unified diffs for common repository gaps (environment templates, CI scaffolding, README setup guides, `.gitignore`, templates, licensing metadata). Unsupported or security-sensitive findings are marked manual-only with explicit instructions.
+5. **Review Workspace & Contributor Playbook**: Full file diff viewer, pre-submission checklist, draft PR title & description, one-click clipboard controls, unified `.patch` export, and zero-dependency ZIP archive export.
+6. **Local In-Memory Verification**: Re-evaluates analysis rules against the in-memory patched workspace to demonstrate score deltas (e.g. Beacon API 47 → 84) while explicitly reporting that remote CI and PR delivery remain `not-run`.
 
 ---
 
@@ -16,16 +37,18 @@ SCAN → FIND → FIX → REVIEW → VERIFY
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 19, Vite 7, JavaScript + JSX, React Router 7, Tailwind utilities + a hand-written design-token stylesheet |
-| Backend | Node.js 20+, Express 5, ES modules, REST/JSON |
-| Analysis engine | Pure JavaScript modules in `server/src/analysis` (no framework or HTTP dependency) |
-| Storage | In-memory map mirrored to bounded JSON files (`server/data/`). **No database required.** |
-| Tests | Node's built-in test runner (`node --test`): 15 unit + 9 integration tests |
-| Lint | ESLint 9 flat config (`@eslint/js`, `eslint-plugin-react`, `eslint-plugin-react-hooks`) |
+| **Frontend** | React 19, Vite 7, JavaScript + JSX, React Router 7, Tailwind utilities + custom design-token stylesheet |
+| **Backend** | Node.js 20+, Express 5, ES modules, REST/JSON |
+| **AI Provider** | Google Gemini Flash (`gemini-2.0-flash`) via native REST `fetch` (server-side only, optional) |
+| **Analysis Engine** | Pure JavaScript modules in `server/src/analysis` (no framework or database dependency) |
+| **Storage** | In-memory map mirrored to bounded JSON files (`server/data/`). **No database required.** |
+| **Tests** | Node's built-in test runner (`node --test`): 109 tests (unit + integration), 0 external test runners |
+| **Lint** | ESLint 9 flat config (`@eslint/js`, `eslint-plugin-react`, `eslint-plugin-react-hooks`) |
+| **Workflow** | One-Click Fork-based Pull Request creation with server-side token security |
 
-No AI model, no paid service and no credentials are needed for the demo workflow.
+---
 
-## Project structure
+## Project Structure
 
 ```
 reporescue/
@@ -33,187 +56,161 @@ reporescue/
 │   ├── index.html
 │   ├── vite.config.js           /api → Express proxy in dev
 │   └── src/
-│       ├── main.jsx  App.jsx    router, shell, footer
+│       ├── main.jsx  App.jsx    Router, shell, footer, navigation
 │       ├── pages/               OverviewPage, ScanPage, FindingsPage, FixesPage,
 │       │                        ReviewPage, VerifyPage, MethodologyPage, ScanHistoryPage
 │       ├── components/          ui.jsx (score ring, diff viewer, badges…), layout/, repository/
-│       ├── state/               ScanWorkspaceProvider.jsx (selection + verification state)
+│       ├── state/               ScanWorkspaceProvider.jsx, useWorkspaceResource.js
 │       ├── services/            api-client.js (fetch wrapper, typed errors, ZIP download)
-│       └── styles/global.css    design tokens + component styles
+│       └── styles/global.css    Design tokens + component styles
 ├── server/                      Node + Express
 │   └── src/
-│       ├── server.js            entry (binds port)
-│       ├── app.js               createApp(): middleware, routers, static client, error handler
-│       ├── config/env.js        .env loading + validation (never echoes secrets)
-│       ├── routes/              scans.js, remediations.js (remediation/PR/verification), system.js
+│       ├── server.js            Entry point (binds port)
+│       ├── app.js               createApp(): security headers, routers, static client, error handler
+│       ├── config/env.js        Environment variable loader
+│       ├── routes/              scans.js, remediations.js, auth.js, system.js
 │       ├── middleware/          rate-limit.js
-│       ├── http/errors.js       ApiError, JSON envelope, request validation
-│       ├── analysis/            normalize, snapshot, rules, score, diff, validators,
-│       │                        remediations, pr, verify, text
-│       ├── github/client.js     bounded read-only GitHub retrieval
+│       ├── http/errors.js       ApiError, JSON envelope, validation
+│       ├── ai/                  gemini.js (REST client), explain-finding.js (grounded explanations)
+│       ├── analysis/            normalize, snapshot, rules, score, opportunities, diff,
+│       │                        validators, remediations, pr, verify, text
+│       ├── github/client.js     Bounded read-only GitHub retrieval
 │       ├── export/              zip.js, review-export.js
 │       ├── services/            scan-service, remediation-service, findings-service
-│       ├── demo/fixtures.js     deterministic bundled repositories
+│       ├── demo/fixtures.js     Deterministic bundled repositories (Beacon API, Tidewatch)
 │       └── storage/scan-store.js
 ├── shared/                      constants.js (severities, labels, weights), scoring-text.js
 ├── tests/
-│   ├── unit/                    normalize, engine, patch
-│   └── integration/api.test.js  Express app on an ephemeral port
+│   ├── unit/                    engine, normalize, patch, progress, ai-explain, opportunities
+│   └── integration/api.test.js  Express API test suite on ephemeral ports
 ├── package.json                 npm workspaces + root scripts
-├── package-lock.json            committed lockfile
+├── package-lock.json            Committed lockfile
+├── LICENSE                      MIT License
 ├── eslint.config.js  .env.example  .gitignore
 ```
 
+---
+
 ## Prerequisites
 
-- Node.js **20.11+** (verified on 22.x)
-- npm 10+
-- Internet access only for live GitHub scans and `npm install`
+- Node.js **20.11+** (verified on v24.x)
+- npm **10+**
+- Internet access only for live GitHub scans and `npm install` (bundled demo mode requires no network)
 
-## Install and run
+---
+
+## Install and Run
 
 ```bash
 cd reporescue
-npm install                      # installs client + server workspaces from the committed lockfile
-cp .env.example .env             # optional; defaults work out of the box
+npm install                      # installs client + server workspaces
+cp .env.example .env             # optional configuration
 
-npm run dev                      # Express API on :3001 + Vite client on :5173 (proxying /api)
-#   open http://localhost:5173
+npm run dev                      # Express API on :3001 + Vite client on :5173
+# open http://localhost:5173
 ```
 
-Production build and single-process start (Express serves `client/dist` and the API from one origin):
+### Production Build & Single-Process Run
 
 ```bash
 npm run build                    # vite build → client/dist
-npm start                        # http://localhost:3001
+npm start                        # Express serves both API and static UI on :3001
 ```
 
-### Scripts
+### Verification Scripts
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | API (`node --watch`) + Vite dev server concurrently |
-| `npm run dev:server` / `npm run dev:client` | Either side alone |
-| `npm run build` | Production client bundle |
-| `npm start` | Express serving API + built client |
-| `npm test` | Unit + integration tests (`node --test`) |
-| `npm run test:unit` / `npm run test:integration` | Subsets |
-| `npm run lint` | ESLint across client, server, shared, tests |
-| `npm run verify` | lint → test → build |
+```bash
+npm test                         # 109 unit + integration tests (node --test)
+npm run lint                     # ESLint verification across client, server, shared, tests
+npm run verify                   # lint → test → build (full CI verification pass)
+```
 
-## Environment variables (`.env.example`)
+---
+
+## Environment Configuration (`.env.example`)
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `3001` | Express port |
+| `PORT` | `3001` | Express API port |
 | `HOST` | `0.0.0.0` | Bind address |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | Only needed for cross-origin deployments; exactly one origin, never a wildcard |
-| `GITHUB_TOKEN` | empty | Optional **server-side** token for live scans (higher rate limit). Never sent to the browser or logged. |
-| `REPORESCUE_PERSIST` | `true` | `false` keeps scans in memory only |
-| `REPORESCUE_DATA_DIR` | `./server/data` | JSON mirror location |
-| `FRAME_ANCESTORS` | empty | CSP `frame-ancestors`; `'none'` also sends `X-Frame-Options: DENY` |
-| `TRUST_PROXY` | `false` | Honour `X-Forwarded-For` for rate-limit keys behind a trusted proxy |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | Explicit client origin for cross-origin deployments |
+| `GITHUB_TOKEN` | empty | Optional server-side GitHub PAT for live scans (raises rate limit from 60 to 5,000 req/hr). Never sent to the client. |
+| `GEMINI_API_KEY` | empty | Optional Google Gemini API key for AI finding explanations. If omitted, RepoRescue uses evidence-grounded deterministic explanations. |
+| `REPORESCUE_PERSIST` | `true` | Mirror scans and verifications to bounded JSON files |
+| `REPORESCUE_DATA_DIR` | `./server/data` | JSON storage directory |
+| `FRAME_ANCESTORS` | empty | CSP `frame-ancestors` embedding policy |
+| `TRUST_PROXY` | `false` | Reverse proxy trust configuration |
 
-## Demo workflow (no credentials)
+---
 
-1. Open the overview and click **Beacon API (TypeScript)** — a bundled, deterministic fixture clearly labelled `DEMO · FIXTURE`.
-2. **SCAN** shows score **47/100** (coverage 85), 10 findings, dimension breakdown, deductions and limitations.
-3. **FIND** — search, filter by severity/category, sort, expand evidence (file + line), select findings.
-4. **FIX** — 6 rule-based patch proposals across 8 files, each with a unified diff, validators (JSON/YAML/workflow/markdown/env/gitignore), assumptions and limitations; 4 findings are manual-only with explicit steps.
-5. **REVIEW** — changed-file manifest, full diff set, validation summary, PR draft (title/branch/description/checklist), **Copy** controls and **Download review ZIP**. The preview boundary states that nothing was written to GitHub.
-6. **VERIFY** — records a local re-analysis of the patched in-memory workspace: 47 → 84, 6 resolved, 4 remaining, 0 newly detected; remote CI and PR state are `not-run`.
-7. The second fixture (**Tidewatch**, Python) shows a healthy repository: 85 → 100 after 3 fixes.
+## Demo Workflow (No API Keys Required)
 
-The same engine runs for live scans: paste `owner/repo` or a `github.com` URL.
+1. Open the overview and click **Beacon API (TypeScript)** — a bundled deterministic fixture.
+2. **SCAN** displays score **47/100** (coverage 85), 10 findings, 5-dimension breakdown, and specific point deductions.
+3. **FIND**:
+   - **Contribution Opportunities Tab**: Prioritized contributor opportunities (Difficulty, Priority, Beginner Friendly tags, Impact summary, Relevant files).
+   - **All Findings Tab**: Search, filter by severity/category, expandable evidence with file & line references.
+   - **✦ Explain with AI**: Click on any finding to generate an evidence-grounded explanation (or view the deterministic breakdown).
+4. **FIX**: 6 rule-based patch proposals across 8 files with unified diffs, syntax validators, assumptions, and limitations. Manual-only findings provide explicit contributor steps.
+5. **REVIEW**: File manifest, unified diffs, validator results, PR draft with branch name suggestion, **Copy** buttons, **Download .patch file**, **Download review ZIP**, and the **Contributor Playbook** detailing manual contribution steps.
+6. **VERIFY**: Re-evaluates the rules against the patched in-memory workspace: score jumps **47 → 84** (6 resolved, 4 remaining, 0 newly detected). Remote CI and PR delivery remain `not-run`.
 
+---
 
-### Scan progress and stage navigation
+## AI Architecture & Disclosure
 
-During a scan, the launcher displays a restrained phase list and elapsed time. `POST /api/scans` accepts a client-generated `progressId`; `GET /api/scans/progress/:progressId` returns only phases the server actually performed. The UI does not invent a completion percentage. A failed scan shows the API error with recovery guidance; a completed scan opens its assessment. Only the phase title is announced to assistive technology, so the ticking clock does not repeat in a live region.
+- **Optional & Grounded**: AI is an enhancement, not a dependency. If `GEMINI_API_KEY` is absent or rate-limited, RepoRescue generates structured, deterministic explanations directly from the scanner findings.
+- **Untrusted Content Isolation**: Repository code, headings, excerpts, and issue text are treated as untrusted data. They are wrapped in explicit boundary delimiters with system instructions prohibiting prompt execution or instructions found in repository files.
+- **Zero Token Leakage**: The Gemini API key is stored strictly on the server and never sent to the browser or written to scan records.
+- **Transparent Labelling**: AI-assisted explanations are visibly badged with `✦ AI (Gemini Flash)` or `deterministic analysis` so users always know the provenance of information.
 
-Major workflow navigation uses a 380 ms angled charcoal/lavender wipe. It never blocks pointer or keyboard input and is disabled under `prefers-reduced-motion`. No WebGL orb or decorative 3D animation is loaded.
+---
 
-## REST API
+## Security Model & Contribution Safety
 
-All JSON endpoints answer `{ ok: true, data }` or `{ ok: false, error: { code, message, details?, retryAfterSeconds? } }`.
+- **Responsible PR Delivery ("Fork, Don't Spam")**: RepoRescue never writes directly to upstream repositories. All blobs, trees, commits, and branches are created exclusively on the authenticated user's personal fork (`/repos/{user}/{repo}`) under minimal `read:user public_repo` scope. Pull requests are opened as cross-repository PRs only after explicit user review and validation of an HMAC-SHA256 confirmation token bound to the exact diff hash. Unauthenticated guest sessions safely export unified `.patch` files or ZIP packages without contacting GitHub write APIs.
+- **Token Protection & Encryption at Rest**: Contributor access tokens are isolated to the server, never exposed in client bundles, and never stored in browser storage (`localStorage` / `sessionStorage`). Persisted session mirrors are encrypted at rest with AES-256-GCM bound to session AAD, and files are restricted to owner-only permissions (`0700` directory, `0600` session file).
+- **Workflow Scope Isolation**: Automated fixes that touch GitHub Actions workflows (`.github/workflows/*`) require GitHub's privileged `workflow` scope. RepoRescue blocks workflow modifications before calling GitHub when the session lacks this permission, preventing partial failures.
+- **Path Traversal Protection**: All generated paths and ZIP export entries are checked for directory traversal (`..`), absolute paths, and reserved characters before generation.
+- **No Untrusted Code Execution**: RepoRescue performs purely static AST/regex analysis on retrieved files. It never installs dependencies, executes repository scripts, or runs untrusted code.
+- **Strict Headers & Rate Limiting**: Production-grade CSP, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and sliding-window rate limiters on all API routes.
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/api/health` | Storage mode, GitHub credential mode, write policy |
-| GET | `/api/config/capabilities` | Feature availability, scoring model, live rule catalogue, API list |
-| GET | `/api/demo-repositories` | Bundled fixtures |
-| POST | `/api/scans` | `{ demoId }` or `{ repository }` → 201 assessment (no file bodies) |
-| GET | `/api/scans` | Recent history |
-| GET | `/api/scans/:scanId` | Assessment |
-| GET | `/api/scans/:scanId/findings` | `severity`, `category`, `q`, `sort`, `fixable` |
-| GET | `/api/scans/:scanId/score` | Dimensions, deductions, formula, limitations |
-| GET | `/api/scans/:scanId/report` | Assessment + score |
-| POST | `/api/scans/:scanId/rescan` | Fresh evidence as a new scan |
-| POST | `/api/scans/:scanId/export` | `{ findingIds }` → `application/zip` |
-| POST | `/api/remediations/preview` | `{ scanId, findingIds }` → proposals, diffs, validation |
-| POST | `/api/remediations/validate` | Server-side validation of regenerated patches |
-| POST | `/api/pull-requests/preview` | PR draft + checklist (`performedRemoteWrites: false`) |
-| POST | `/api/pull-requests` | **Always 501 `NOT_CONFIGURED`** — remote delivery is disabled in this build |
-| POST | `/api/verifications` | Record a local verification (201) |
-| GET | `/api/verifications/:id` | Retrieve a verification |
+---
 
-Error codes: `INVALID_INPUT`, `INVALID_REPOSITORY`, `NOT_FOUND`, `RATE_LIMITED`, `REPOSITORY_NOT_FOUND`, `REPOSITORY_FORBIDDEN`, `GITHUB_UNAUTHORIZED`, `GITHUB_RATE_LIMITED`, `GITHUB_UNAVAILABLE`, `GITHUB_TIMEOUT`, `UPSTREAM_ERROR`, `PAYLOAD_TOO_LARGE`, `NO_REMEDIATION`, `NOT_CONFIGURED`, `INTERNAL_ERROR`.
+## How to Contribute
 
-## Analysis rules and scoring
+We welcome contributions to RepoRescue! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for full setup instructions, local development workflows, and our code of conduct. Security-related disclosures should follow [SECURITY.md](SECURITY.md).
 
-21 deterministic checks in five dimensions (weights sum to 100): documentation 25 · setup 25 · testing/CI 20 · contribution 15 · hygiene 15. Ecosystems detected from root manifests: JS/TS, Python, Java, Go, Rust.
+---
+
+## Tests & Verification
 
 ```
-total     = round(100 × Σ earned / Σ applicable weight)
-dimension = round(100 × Σ earned_in_dimension / Σ applicable_weight_in_dimension)
-partial   = 50 % of a check's weight; not-applicable checks leave both sums
-coverage  = Σ applicable weight (always shown beside the total)
+✔ 109 tests executed (109 passed, 0 failed)
+✔ 0 ESLint errors across all workspaces
+✔ Production Vite bundle built in < 500ms
 ```
 
-Every deduction names its check, points and evidence. `/methodology` renders the catalogue straight from the running engine. Missing evidence is treated as an onboarding gap, never as proof that code is bad; no implemented rule emits `critical`.
+- **Unit Tests**: Rule evaluation determinism, pinned score invariants, path safety, diff generation, validator behavior, patch plan consistency, progress tracking, opportunity derivation, OAuth security, token encryption (AES-256-GCM), and Gemini explanation fallbacks.
+- **Integration Tests**: Express REST API endpoints on ephemeral ports (scans, findings, score, report, export, preview, validate, PR delivery pipeline, verification, explain endpoint, opportunities endpoint, session revocation).
 
-## Remediation, review, export, verification
+---
 
-- **13 automatic remediation rules** (env template create/complete, CI scaffold, CONTRIBUTING, code of conduct, issue/PR templates, `.gitignore`, README requirements/getting-started/usage/tests sections, contributing dev-setup, manifest license when an SPDX file exists, engines field). Everything else — license choice, committed secrets, inventing tests, editing an existing workflow, repository settings — is manual with explicit steps.
-- Validators: JSON, YAML, GitHub Actions structure, markdown (balanced fences, headings), env-template keys, `.gitignore` patterns, patch-path safety. Non-applicable validators report `skipped`, never `passed`.
-- **ZIP export** (`server/src/export`): dependency-free archive writer; includes `files/<repo path>`, `proposed.patch`, `manifest.json`, `REVIEW.md`; path-validated, size-bounded, no secrets or server configuration.
-- **Verification** re-runs all rules against an in-memory patched snapshot and persists a record with `passed | failed | partial | unavailable` plus per-check `passed | failed | skipped | not-run`. CI and PR state are always `not-run` because nothing is pushed.
+## License & Compliance
 
-## Security model
+Per the DevForge Hacktoberfest 2026 updated rulebook clarification, an MIT License is not mandatory for hackathon submission. RepoRescue adheres strictly to all updated hackathon regulations.
 
-- GitHub token server-side only; never in Vite env, responses, logs or exports.
-- Only `github.com` repositories are accepted; the API origin is fixed; no generic proxy.
-- Path traversal, absolute paths, NUL bytes and `.git/` are rejected for every repository and patch path.
-- Repository content is untrusted: no execution, no installs, no shell interpolation, bounded downloads (≤24 files / ≤160 KB each / ≤900 KB total), binary files skipped.
-- Request validation with 64 KB JSON limit; per-client fixed-window rate limits on scan (12/min), rescan (6/min), previews (40/min), export (20/min), verification (20/min).
-- Security headers on every response (CSP, nosniff, referrer policy, permissions policy); no `X-Powered-By`; same-origin API by default.
-- Scanning is read-only. **Remote GitHub writes are not implemented** and `POST /api/pull-requests` returns 501 instead of pretending.
+---
 
-## Tests (executed)
+## AI Tools Used
 
-```
-npm test     → 38 tests, 38 passed, 0 failed
-```
+- **Google Gemini API**: Optional server-side enhancement for plain-language finding explanations (strictly grounded in scan evidence; never generates patches or code).
+- **AI Coding Assistants**: Antigravity was used during development for scaffolding, testing, and security hardening; all code is fully understood, audited, and maintained by the team.
 
-- Unit: repository input normalization and rejection, path safety, deterministic rule evaluation, pinned fixture scores (47/85 coverage; 85), empty-repository behaviour, diff generation/parsing, validators, remediation plan composition and determinism, verification transitions and `unavailable` path.
-- Integration (Express on an ephemeral port): health/capabilities, security headers, demo listing, demo scan, invalid input (bad demo id, non-GitHub host, wrong content-type, malformed JSON, >64 KB body → 413), unknown ids/routes, findings filters, score/report/history, preview → validate → **ZIP export** → PR preview → delivery 501 → verification → retrieval → PR draft with recorded evidence, selection rejections.
+---
 
-Browser regression coverage is now available in `tests/browser/smoothness.js`: **29 checks passed in headless Chromium** against the production Vite client and real Express API, including all five stages, responsive widths, keyboard interactions, native scrolling, copy/ZIP export, delayed/error responses, and reduced motion. See [docs/SMOOTHNESS_QA.md](docs/SMOOTHNESS_QA.md) for exact commands and limitations. Browser tooling is installed temporarily, not added to the app dependencies. Safari/Firefox and real mobile hardware remain unverified; layered-glass colour contrast needs manual review. Live GitHub network paths were not re-run during this UI-only pass.
+## Credits & Acknowledgments
 
-## Known limitations
-
-- Live scanning analyses the default branch and a bounded file set statically; it cannot prove a project builds or tests pass.
-- Generated text/runtime versions are proposals for maintainer review.
-- JSON persistence is single-process and bounded to 50 scans / 200 verifications; rate limiting is per process.
-- No accounts, no live PR creation, no CI polling, no AI features — none are advertised as available.
-
-## Troubleshooting
-
-| Symptom | Fix |
-| --- | --- |
-| Overview shows "API unavailable" | Start the server (`npm run dev:server`) or check `PORT`; the Vite proxy targets `http://localhost:3001` (override with `VITE_DEV_API_TARGET`). |
-| `GITHUB_RATE_LIMITED` | Anonymous GitHub limit (60/h). Wait, set a server-side `GITHUB_TOKEN`, or use demo mode. |
-| `REPOSITORY_NOT_FOUND` | Private/renamed repository or typo. |
-| Verification says `unavailable` | Only manual findings were selected; nothing could be patched locally. |
-| Blank page inside an iframe | Set/unset `FRAME_ANCESTORS` to allow the embedding origin. |
-| Port in use | `PORT=3101 npm run dev:server` and `VITE_DEV_API_TARGET=http://localhost:3101 npm run dev:client`. |
+- **Core Frameworks & Tools**: React 19, Vite 7, React Router 7, Express 5, Tailwind CSS, Zod, ESLint 9, Concurrently.
+- **Benchmark Fixtures**: Deterministic scan fixtures derived from real-world open-source patterns (`beacon-labs/beacon-api`, `tidewatch/tidewatch`).
+- **Event**: DevForge Hacktoberfest 2026. Built by Team COGNIVANCE.

@@ -2,7 +2,9 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { AppHeader } from "./components/layout/AppHeader.jsx";
 import { ScanWorkspaceProvider, WorkspaceShell } from "./state/ScanWorkspaceProvider.jsx";
+import { AuthProvider } from "./state/AuthContext.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
 import MethodologyPage from "./pages/MethodologyPage.jsx";
 import ScanHistoryPage from "./pages/ScanHistoryPage.jsx";
 import { ScanSummary } from "./pages/ScanPage.jsx";
@@ -64,7 +66,7 @@ function NotFoundPage() {
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <RoutePositionReset />
       <a href="#main" className="skip-link">Skip to main content</a>
       <div className="app-frame">
@@ -72,6 +74,7 @@ export default function App() {
         <main id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<OverviewPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/scans" element={<ScanHistoryPage />} />
             <Route path="/scan" element={<Navigate to="/" replace />} />
@@ -94,7 +97,8 @@ export default function App() {
                 </p>
                 <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.65, marginTop: 8 }}>
                   Findings come from deterministic rules over scanned evidence. RepoRescue never executes repository code,
-                  never installs dependencies and performs no GitHub writes. Demo mode uses bundled fixtures and is labelled
+                  never installs dependencies and never writes directly to upstream repositories. Pull requests are opened
+                  exclusively through user-owned forks upon explicit user approval. Demo mode uses bundled fixtures and is labelled
                   as such everywhere it appears.
                 </p>
               </div>
@@ -108,6 +112,6 @@ export default function App() {
           </div>
         </footer>
       </div>
-    </>
+    </AuthProvider>
   );
 }

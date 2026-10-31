@@ -6,13 +6,38 @@ export function githubApiOrigin(env = process.env) {
   return (env.GITHUB_API_ORIGIN?.trim() || "https://api.github.com").replace(/\/+$/, "");
 }
 
+export function githubClientId(env = process.env) {
+  return env.GITHUB_CLIENT_ID?.trim() || env.GITHUB_APP_CLIENT_ID?.trim() || "";
+}
+
+export function githubClientSecret(env = process.env) {
+  return env.GITHUB_CLIENT_SECRET?.trim() || env.GITHUB_APP_CLIENT_SECRET?.trim() || "";
+}
+
+export function clientOrigin(req = null, env = process.env) {
+  const configured = env.REPORESCUE_CLIENT_ORIGIN?.trim() || env.CLIENT_ORIGIN?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  if (req?.headers?.origin) return req.headers.origin.replace(/\/+$/, "");
+  const host = req?.headers?.["x-forwarded-host"] || req?.headers?.host;
+  const proto = req?.headers?.["x-forwarded-proto"] || "http";
+  if (host) return `${proto}://${host}`.replace(/\/+$/, "");
+  return "http://localhost:5173";
+}
+
+export function githubCallbackUrl(req = null, env = process.env) {
+  const configured = env.GITHUB_CALLBACK_URL?.trim() || env.GITHUB_APP_CALLBACK_URL?.trim();
+  if (configured) return configured;
+  return `${clientOrigin(req, env)}/api/auth/github/callback`;
+}
+
 export function githubAppReady(env = process.env) {
+  const clientId = githubClientId(env);
+  const clientSecret = githubClientSecret(env);
+  const sessionSecret = env.REPORESCUE_SESSION_SECRET?.trim() || "";
   return Boolean(
-    (env.GITHUB_APP_CLIENT_ID?.trim() ?? "") &&
-    (env.GITHUB_APP_CLIENT_SECRET?.trim() ?? "") &&
-    /^[0-9a-f]{64}$/i.test(env.REPORESCUE_SESSION_SECRET?.trim() ?? "") &&
-    (env.GITHUB_APP_CALLBACK_URL?.trim() ?? "") &&
-    (env.REPORESCUE_CLIENT_ORIGIN?.trim() ?? "")
+    clientId &&
+    clientSecret &&
+    /^[0-9a-f]{64}$/i.test(sessionSecret)
   );
 }
 

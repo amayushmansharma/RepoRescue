@@ -94,18 +94,18 @@ async function runDemoScan(demoId, progressId) {
     finishProgress(progressId, "complete");
     return { ...assessment, storage };
 }
-export async function createLiveScan(repositoryInput, progressId) {
+export async function createLiveScan(repositoryInput, progressId, tokenOverride) {
     if (progressId)
         beginProgress(progressId);
     try {
-        return await runLiveScan(repositoryInput, progressId);
+        return await runLiveScan(repositoryInput, progressId, tokenOverride);
     }
     catch (error) {
         finishProgress(progressId, "failed");
         throw error;
     }
 }
-async function runLiveScan(repositoryInput, progressId) {
+async function runLiveScan(repositoryInput, progressId, tokenOverride) {
     markProgress(progressId, "normalising-input");
     let normalized;
     try {
@@ -118,7 +118,9 @@ async function runLiveScan(repositoryInput, progressId) {
         throw error;
     }
     markProgress(progressId, "fetching-metadata");
-    const token = process.env.GITHUB_TOKEN?.trim() || undefined;
+    const token = (typeof tokenOverride === "string" && tokenOverride.trim())
+        ? tokenOverride.trim()
+        : (process.env.GITHUB_TOKEN?.trim() || undefined);
     const result = await fetchRepositorySnapshot(normalized, token);
     markProgress(progressId, "discovering-files");
     const core = assessSnapshot(result.snapshot, progressId);
@@ -128,7 +130,7 @@ async function runLiveScan(repositoryInput, progressId) {
     finishProgress(progressId, "complete");
     return { ...assessment, storage };
 }
-export async function rescanAssessment(assessment) {
+export async function rescanAssessment(assessment, tokenOverride) {
     if (assessment.mode === "demo") {
         const fixture = getDemoFixture(assessment.repository.name);
         if (!fixture)
@@ -148,7 +150,7 @@ export async function rescanAssessment(assessment) {
     // Re-use the selector stored with the scan; the snapshot above is only a
     // placeholder so the selector survives a repository rename.
     void snapshot;
-    return createLiveScan(assessment.repository.fullName);
+    return createLiveScan(assessment.repository.fullName, undefined, tokenOverride);
 }
 export function toScanDetail(assessment) {
     const { snapshot, ...rest } = assessment;
@@ -163,6 +165,7 @@ export function toScanDetail(assessment) {
         },
     };
 }
-export function githubAccessMode() {
-    return process.env.GITHUB_TOKEN?.trim() ? "authenticated" : "anonymous";
+export function githubAccessMode(tokenOverride) {
+    if (typeof tokenOverride === "string" && tokenOverride.trim()) return "authenticated-user";
+    return process.env.GITHUB_TOKEN?.trim() ? "authenticated-server" : "anonymous";
 }

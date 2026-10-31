@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
+export const DEFAULT_SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
 const SESSION_COOKIE = "reporescue_session";
-const SESSION_MAX_AGE_SECONDS = 60 * 60;
 const SESSION_ID_BYTES = 32;
 const SAFE_SESSION_SHARED_SECRET = "RepoRescue/1.0 (opaque signed opaque sessions)";
 
@@ -14,8 +14,18 @@ export function normalizeHexSecret(secret, requiredBytes = 32) {
   return Buffer.from(input, "hex");
 }
 
+const DEV_FALLBACK_SECRET = Buffer.from(
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "hex"
+);
+
 export function sessionSecretBytes(fromEnv = process.env.REPORESCUE_SESSION_SECRET) {
-  return normalizeHexSecret(fromEnv);
+  const normalized = normalizeHexSecret(fromEnv);
+  if (normalized) return normalized;
+  if (process.env.NODE_ENV !== "production") {
+    return DEV_FALLBACK_SECRET;
+  }
+  return null;
 }
 
 function signatureForRaw(raw, secretBytes) {
@@ -40,9 +50,14 @@ function timingSafeEqualBuffer(a, b) {
   return crypto.timingSafeEqual(aa, bb);
 }
 
-export function cookieAttributes({ secure = process.env.NODE_ENV === "production" } = {}) {
+export function cookieAttributes({
+  secure = process.env.NODE_ENV === "production",
+  persistent = false,
+  maxAge = DEFAULT_SESSION_MAX_AGE_SECONDS,
+} = {}) {
   const securePart = secure ? "; Secure" : "";
-  return `HttpOnly; SameSite=Lax${securePart}; Path=/; Max-Age=${SESSION_MAX_AGE_SECONDS}`;
+  const maxAgePart = persistent ? `; Max-Age=${maxAge}` : "";
+  return `HttpOnly; SameSite=Lax${securePart}; Path=/${maxAgePart}`;
 }
 
 export function sessionCookieName() {
@@ -57,6 +72,7 @@ export function verifyOpaqueSessionCookie(cookieValue, raw, secretBytes = sessio
   return true;
 }
 
-export function clearSessionCookie() {
-  return `${SESSION_COOKIE}=; ${cookieAttributes()}; Max-Age=0`;
+export function clearSessionCookie({ secure = process.env.NODE_ENV === "production" } = {}) {
+  const securePart = secure ? "; Secure" : "";
+  return `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax${securePart}; Path=/; Max-Age=0`;
 }

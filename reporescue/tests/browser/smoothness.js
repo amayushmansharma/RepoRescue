@@ -1,4 +1,4 @@
-/* global document, window, getComputedStyle, navigator, requestAnimationFrame */
+/* global document, window, getComputedStyle, requestAnimationFrame */
 /** Optional production-browser regression suite. No app/test dependency changes.
  * Build/start Express first; see docs/SMOOTHNESS_QA.md for the exact commands.
  * Success responses always come from the real local API. Fault injection only

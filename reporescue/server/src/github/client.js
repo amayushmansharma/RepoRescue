@@ -41,6 +41,14 @@ function authHeaders(token) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }
+export function githubRateLimitError(token, retryAfterSeconds) {
+    const mins = retryAfterSeconds ? Math.ceil(retryAfterSeconds / 60) : 15;
+    const message = token
+        ? `GitHub API rate limit reached for this session (5,000 requests/hour). Please try again in approximately ${mins} minute(s).`
+        : `GitHub API rate limit reached for anonymous scanning (60 requests/hour). Sign in with GitHub for 5,000 requests/hour, or try again in approximately ${mins} minute(s).`;
+    return new ApiError("GITHUB_RATE_LIMITED", message, { retryAfterSeconds });
+}
+
 async function githubFetch(path, token) {
     let response;
     try {
@@ -68,7 +76,7 @@ async function githubFetch(path, token) {
     }
     if (response.status === 403 || response.status === 429 || remaining === "0") {
         const seconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : Math.ceil(resetIn / 1000) || undefined;
-        throw new ApiError("GITHUB_RATE_LIMITED", "The GitHub API rate limit for this deployment was reached. Try again later, or explore the bundled demo repositories.", { retryAfterSeconds: seconds });
+        throw githubRateLimitError(token, seconds);
     }
     if (response.status === 401) {
         throw new ApiError("GITHUB_UNAUTHORIZED", "The configured GitHub token was rejected. Live scanning is unavailable until it is corrected.");

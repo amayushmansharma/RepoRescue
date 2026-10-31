@@ -3,6 +3,21 @@ import { Link } from "react-router-dom";
 import { ApiClientError, api } from "../services/api-client.js";
 import { ModeBadge, Notice, Spinner, formatUtc } from "../components/ui.jsx";
 
+function deduplicateScans(scans) {
+  if (!Array.isArray(scans)) return [];
+  const seenDemo = new Set();
+  const deduped = [];
+  for (const scan of scans) {
+    if (scan.mode === "demo") {
+      const repoKey = scan.repository || scan.repositoryUrl;
+      if (seenDemo.has(repoKey)) continue;
+      seenDemo.add(repoKey);
+    }
+    deduped.push(scan);
+  }
+  return deduped;
+}
+
 export default function ScanHistoryPage() {
   const [scans, setScans] = useState(null);
   const [error, setError] = useState(null);
@@ -12,7 +27,7 @@ export default function ScanHistoryPage() {
     api
       .listScans()
       .then((payload) => {
-        if (!cancelled) setScans(payload.scans);
+        if (!cancelled) setScans(deduplicateScans(payload.scans));
       })
       .catch((caught) => {
         if (cancelled) return;

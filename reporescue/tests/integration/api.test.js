@@ -22,12 +22,16 @@ const postJson = (path, body) =>
   fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const getJson = async (path) => (await fetch(`${base}${path}`)).json();
 
+let cachedBeaconScan = null;
+
 async function createBeaconScan() {
+  if (cachedBeaconScan) return cachedBeaconScan;
   const response = await postJson("/api/scans", { mode: "demo", demoId: "beacon-api" });
   assert.equal(response.status, 201);
   const payload = await response.json();
   assert.equal(payload.ok, true);
-  return { scanId: payload.data.scan.scanId, payload };
+  cachedBeaconScan = { scanId: payload.data.scan.scanId, payload };
+  return cachedBeaconScan;
 }
 
 test("health and capabilities report storage, credential mode and the write policy", async () => {
@@ -145,8 +149,8 @@ test("full FIX → REVIEW → export → VERIFY workflow through the REST API", 
   assert.ok(pr.data.draft.checklist.some((item) => item.label.includes("pull request") && item.done === false));
 
   const delivery = await postJson("/api/pull-requests", { scanId, findingIds: autoIds, confirm: true });
-  assert.equal(delivery.status, 501);
-  assert.equal((await delivery.json()).error.details.remoteWritesPerformed, false);
+  assert.equal(delivery.status, 401);
+  assert.equal((await delivery.json()).error.code, "AUTHENTICATION_REQUIRED");
 
   const verificationResponse = await postJson("/api/verifications", { scanId, findingIds: autoIds });
   assert.equal(verificationResponse.status, 201);
@@ -208,4 +212,49 @@ test("an invalid progressId is ignored and the scan still succeeds", async () =>
   const response = await postJson("/api/scans", { mode: "demo", demoId: "beacon-api", progressId: "not-a-uuid" });
   assert.equal(response.status, 201);
   assert.equal((await response.json()).data.scan.score.total, 47);
+});
+
+test("explain finding endpoint provides structured explanation with fallback", async () => {
+  const { scanId } = await createBeaconScan();
+
+  const explainRes = await fetch(`${base}/api/scans/${scanId}/findings/env-template-missing/explain`);
+  assert.equal(explainRes.status, 200);
+  const payload = await explainRes.json();
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.scanId, scanId);
+  assert.equal(payload.data.findingId, "env-template-missing");
+  assert.ok(payload.data.explanation.text.length > 50);
+  assert.ok(payload.data.explanation.text.includes("**What was found**"));
+  assert.equal(payload.data.explanation.source, "deterministic");
+
+  const unknownFinding = await fetch(`${base}/api/scans/${scanId}/findings/non-existent-rule/explain`);
+  assert.equal(unknownFinding.status, 404);
+
+  const unknownScan = await fetch(`${base}/api/scans/00000000-0000-0000-0000-000000000000/findings/env-template-missing/explain`);
+  assert.equal(unknownScan.status, 404);
+});
+
+test("opportunities endpoint returns prioritized contribution opportunities", async () => {
+  const { scanId } = await createBeaconScan();
+
+  const res = await fetch(`${base}/api/scans/${scanId}/opportunities`);
+  assert.equal(res.status, 200);
+  const payload = await res.json();
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.scanId, scanId);
+  assert.ok(payload.data.opportunities.length > 0);
+
+  const first = payload.data.opportunities[0];
+  assert.ok(first.id.startsWith("opp-"));
+  assert.ok(first.title.length > 0);
+  assert.equal(first.source, "scanner-finding");
+  assert.ok(["high", "medium", "low"].includes(first.priority));
+  assert.ok(["easy", "medium", "involved"].includes(first.difficulty));
+
+  // Test filter queries
+  const beginnerOnly = await (await fetch(`${base}/api/scans/${scanId}/opportunities?beginnerOnly=true`)).json();
+  assert.ok(beginnerOnly.data.opportunities.every((o) => o.beginnerSuitable));
+
+  const fixableOnly = await (await fetch(`${base}/api/scans/${scanId}/opportunities?fixableOnly=true`)).json();
+  assert.ok(fixableOnly.data.opportunities.every((o) => o.fixable));
 });

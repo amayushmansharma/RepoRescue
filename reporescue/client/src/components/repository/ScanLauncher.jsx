@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiClientError, api } from "../../services/api-client.js";
 import { Notice, Spinner } from "../ui.jsx";
+import { useAuth } from "../../state/AuthContext.jsx";
 const POLL_INTERVAL_MS = 500;
 const MAX_PROGRESS_POLLS = 240; // A bounded observation budget; never a progress estimate.
 function newProgressId() {
@@ -12,6 +13,7 @@ function newProgressId() {
 }
 export function ScanLauncher({ demos }) {
     const navigate = useNavigate();
+    const { authenticated, user } = useAuth();
     const [repository, setRepository] = useState("");
     const [phase, setPhase] = useState({ kind: "idle" });
     const [error, setError] = useState(null);
@@ -133,7 +135,15 @@ export function ScanLauncher({ demos }) {
     return (<div className="glass panel" style={{ padding: 20 }}>
       <div className="flex items-center justify-between gap-3">
         <h2 style={{ fontSize: "1.02rem" }}>Start a scan</h2>
-        <span className="badge badge-mono">no account required</span>
+        {authenticated ? (
+          <span className="badge badge-pass badge-mono" title="Authenticated live scanning: 5,000 requests/hour quota">
+            authenticated quota (5,000 req/hr)
+          </span>
+        ) : (
+          <span className="badge badge-mono" title="Anonymous live scanning: 60 requests/hour IP quota. Sign in for 5,000/hr.">
+            anonymous quota (60 req/hr)
+          </span>
+        )}
       </div>
 
       <form onSubmit={startLiveScan} noValidate style={{ marginTop: 16 }}>
@@ -147,7 +157,9 @@ export function ScanLauncher({ demos }) {
           </button>
         </div>
         <p id="repository-help" className="dim" style={{ fontSize: 12, marginTop: 7 }}>
-          Read-only GitHub API access. Public repositories only; a server-side token is optional.
+          {authenticated
+            ? `Scanning as @${user?.login ?? "user"} with your server-side OAuth session (5,000 GitHub req/hr). Public repositories only.`
+            : "Anonymous GitHub API scanning (60 req/hr IP limit). Sign in to get 5,000 req/hr."}
         </p>
         {inputError ? (<p id="repository-error" role="alert" style={{ color: "var(--tone-bad)", fontSize: 12.5, marginTop: 7 }}>
             {inputError}
@@ -196,7 +208,7 @@ export function ScanLauncher({ demos }) {
             {recorded.length > 0 ? (<ul className="scan-phase-list">
                 {recorded.slice(-6).map((entry, index, list) => {
                     const state = progress?.status === "complete" || index < list.length - 1 ? "done" : progress?.status === "failed" ? "failed" : "active";
-                    return (<li key={`${entry.key}-${entry.at}`} data-state={state}>
+                    return (<li key={`${entry.key}-${entry.at}-${index}`} data-state={state}>
                       <span className="scan-phase-dot" aria-hidden="true">
                         {state === "done" ? "✓" : state === "failed" ? "×" : "●"}
                       </span>
@@ -207,7 +219,7 @@ export function ScanLauncher({ demos }) {
                 Waiting for the server’s first phase. A completion percentage is not available.
               </p>)}
             <div className="scan-phase-meter" aria-hidden="true">
-              {recorded.map((entry) => (<span key={entry.at} data-filled="true"/>))}
+              {recorded.map((entry, index) => (<span key={`${entry.at}-${index}`} data-filled="true"/>))}
             </div>
             <p className="dim" style={{ fontSize: 11.4, marginTop: 8 }}>
               Each bar represents a phase recorded by the server.

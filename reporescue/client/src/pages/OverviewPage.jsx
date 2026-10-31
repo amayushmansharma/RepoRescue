@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ApiClientError, api } from "../services/api-client.js";
 import { ScanLauncher } from "../components/repository/ScanLauncher.jsx";
 import { ModeBadge, Notice, Spinner, formatUtc } from "../components/ui.jsx";
+import { useAuth } from "../state/AuthContext.jsx";
 
 const STAGES = [
   { name: "Scan", copy: "Validate the repository input and collect the evidence the rules need. Live or fixture." },
@@ -12,7 +13,23 @@ const STAGES = [
   { name: "Verify", copy: "Re-run the rules against the patched workspace. Local evidence is separated from remote CI." },
 ];
 
+function deduplicateScans(scans) {
+  if (!Array.isArray(scans)) return [];
+  const seenDemo = new Set();
+  const deduped = [];
+  for (const scan of scans) {
+    if (scan.mode === "demo") {
+      const repoKey = scan.repository || scan.repositoryUrl;
+      if (seenDemo.has(repoKey)) continue;
+      seenDemo.add(repoKey);
+    }
+    deduped.push(scan);
+  }
+  return deduped;
+}
+
 export default function OverviewPage() {
+  const { hasWriteScope, requiresReauth } = useAuth();
   const [demos, setDemos] = useState(null);
   const [recent, setRecent] = useState(null);
   const [error, setError] = useState(null);
@@ -23,7 +40,7 @@ export default function OverviewPage() {
       .then(([demoPayload, scanPayload]) => {
         if (cancelled) return;
         setDemos(demoPayload.repositories);
-        setRecent(scanPayload.scans.slice(0, 6));
+        setRecent(deduplicateScans(scanPayload.scans).slice(0, 6));
       })
       .catch((caught) => {
         if (cancelled) return;
@@ -58,7 +75,19 @@ export default function OverviewPage() {
             <span className="badge badge-mono">21 deterministic checks</span>
             <span className="badge badge-mono">5 weighted dimensions</span>
             <span className="badge badge-mono">no code execution</span>
-            <span className="badge badge-mono">no GitHub writes</span>
+            {hasWriteScope ? (
+              <span className="badge badge-pass badge-mono" title="Fork & PR delivery active via authenticated GitHub user">
+                PR delivery enabled
+              </span>
+            ) : requiresReauth ? (
+              <span className="badge badge-medium badge-mono" title="public_repo scope required for PR delivery">
+                re-auth for PR delivery
+              </span>
+            ) : (
+              <span className="badge badge-mono" title="PRs created via user fork upon explicit confirmation; never writes directly to upstream">
+                never writes upstream
+              </span>
+            )}
           </div>
           <div className="subtle panel-tight" style={{ marginTop: 22 }}>
             <p className="mono" style={{ fontSize: 10.5, letterSpacing: "0.1em", color: "var(--text-dim)" }}>
@@ -169,7 +198,7 @@ export default function OverviewPage() {
           <h2 id="boundary-title" className="section-title">What RepoRescue will not do</h2>
           <div className="grid gap-6 md:grid-cols-2" style={{ marginTop: 14 }}>
             <ul className="clean-list">
-              <li><span className="bullet bullet-rose" aria-hidden="true" /><span>Push a branch, commit or open a pull request. PR output is a clearly labelled preview and a local ZIP.</span></li>
+              <li><span className="bullet bullet-rose" aria-hidden="true" /><span>Directly push to or modify upstream repositories. Pull requests are opened exclusively from your contributor fork for maintainer review.</span></li>
               <li><span className="bullet bullet-rose" aria-hidden="true" /><span>Run repository code, package installs or lifecycle hooks during analysis.</span></li>
               <li><span className="bullet bullet-rose" aria-hidden="true" /><span>Invent CI results, merges or a before/after score without a real re-analysis.</span></li>
             </ul>

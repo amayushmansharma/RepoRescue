@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const MAX_SCANS = 50;
 const MAX_VERIFICATIONS = 200;
+const MAX_PULL_REQUESTS = 50;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +27,7 @@ const defaultDataDir = path.resolve(here, "../../data");
 
 const scans = new Map();
 const verifications = new Map();
+const pullRequests = new Map();
 let loaded = false;
 let persistenceWarned = false;
 
@@ -57,6 +60,9 @@ async function ensureLoaded() {
   for (const record of await readJsonFile(path.join(dir, "verifications.json"))) {
     if (record && typeof record.id === "string") verifications.set(record.id, record);
   }
+  for (const record of await readJsonFile(path.join(dir, "pull-requests.json"))) {
+    if (record && typeof record.id === "string") pullRequests.set(record.id, record);
+  }
 }
 
 async function writeJsonFile(file, value) {
@@ -78,6 +84,7 @@ async function flush() {
     const dir = dataDir();
     await writeJsonFile(path.join(dir, "scans.json"), Array.from(scans.values()));
     await writeJsonFile(path.join(dir, "verifications.json"), Array.from(verifications.values()));
+    await writeJsonFile(path.join(dir, "pull-requests.json"), Array.from(pullRequests.values()));
     return "file";
   } catch (error) {
     if (!persistenceWarned) {
@@ -149,9 +156,34 @@ export async function storageStatus() {
   }
 }
 
+export async function savePullRequestRecord(record) {
+  await ensureLoaded();
+  const id = record.id ?? (typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `pr-${Date.now()}`);
+  const full = { ...record, id, createdAt: record.createdAt ?? new Date().toISOString() };
+  pullRequests.set(id, full);
+  prune(pullRequests, MAX_PULL_REQUESTS, "createdAt");
+  await flush();
+  return full;
+}
+
+export async function getPullRequestRecord(id) {
+  await ensureLoaded();
+  return pullRequests.get(id) ?? null;
+}
+
+export async function listPullRequestRecords(scanId) {
+  await ensureLoaded();
+  const list = Array.from(pullRequests.values());
+  if (scanId) {
+    return list.filter((r) => r.scanId === scanId);
+  }
+  return list;
+}
+
 /** Test helper: clears in-memory state without touching disk. */
 export function __resetStoreForTests() {
   scans.clear();
   verifications.clear();
+  pullRequests.clear();
   loaded = false;
 }

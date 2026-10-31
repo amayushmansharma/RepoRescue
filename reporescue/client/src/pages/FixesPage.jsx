@@ -151,7 +151,7 @@ export function FixWorkspace() {
                     Validation ({proposal.validation.length})
                   </h3>
                   <ul className="clean-list" style={{ marginTop: 8 }}>
-                    {proposal.validation.map((check) => (<li key={`${proposal.id}-${check.id}-${check.label}`} style={{ alignItems: "flex-start" }}>
+                    {proposal.validation.map((check, checkIndex) => (<li key={`${proposal.id}-${check.id}-${check.label}-${checkIndex}`} style={{ alignItems: "flex-start" }}>
                         <ValidationBadge state={check.state}/>
                         <span>
                           <span style={{ color: "var(--text)", fontSize: 12.6 }}>{check.label}</span>
@@ -163,27 +163,33 @@ export function FixWorkspace() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mono dim" style={{ fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                    Assumptions & limitations
-                  </h3>
-                  <ul className="clean-list" style={{ marginTop: 8 }}>
-                    {proposal.assumptions.map((assumption) => (<li key={assumption}>
-                        <span className="bullet" aria-hidden="true"/>
-                        <span>{assumption}</span>
-                      </li>))}
-                    {proposal.limitations.map((limitation) => (<li key={limitation}>
-                        <span className="bullet bullet-rose" aria-hidden="true"/>
-                        <span>{limitation}</span>
-                      </li>))}
-                  </ul>
                   {proposal.instructions.length > 0 ? (<>
-                      <h3 className="mono dim" style={{ fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 12 }}>
+                      <h3 className="mono dim" style={{ fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         Before submitting
                       </h3>
                       <ol className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 6, paddingLeft: 18 }}>
                         {proposal.instructions.map((instruction) => (<li key={instruction}>{instruction}</li>))}
                       </ol>
                     </>) : null}
+                  {(proposal.assumptions.length > 0 || proposal.limitations.length > 0) ? (
+                    <details className="disclosure-box" style={{ marginTop: proposal.instructions.length > 0 ? 12 : 0 }}>
+                      <summary className="disclosure-summary">
+                        <span>Assumptions &amp; limitations ({proposal.assumptions.length + proposal.limitations.length})</span>
+                      </summary>
+                      <div className="disclosure-content">
+                        <ul className="clean-list">
+                          {proposal.assumptions.map((assumption) => (<li key={assumption}>
+                              <span className="bullet" aria-hidden="true"/>
+                              <span>{assumption}</span>
+                            </li>))}
+                          {proposal.limitations.map((limitation) => (<li key={limitation}>
+                              <span className="bullet bullet-rose" aria-hidden="true"/>
+                              <span>{limitation}</span>
+                            </li>))}
+                        </ul>
+                      </div>
+                    </details>
+                  ) : null}
                 </div>
               </div>
             </article>))}

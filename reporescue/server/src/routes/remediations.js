@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { ApiError, asyncHandler, readSelection, sendOk } from "../http/errors.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { sessionForRequest, invalidateSessionForRequest } from "../auth/auth-service.js";
+import {
+  preparePullRequestSubmission,
+  submitPullRequest,
+} from "../services/pull-request-service.js";
 import {
   ensureFindingSelection,
   loadAssessment,
@@ -9,7 +14,7 @@ import {
   previewFor,
   verifyFor,
 } from "../services/remediation-service.js";
-import { getVerification } from "../storage/scan-store.js";
+import { getVerification, savePullRequestRecord, listPullRequestRecords } from "../storage/scan-store.js";
 
 export const remediationsRouter = Router();
 export const pullRequestsRouter = Router();
@@ -72,29 +77,139 @@ pullRequestsRouter.post(
       if (!verification) throw new ApiError("NOT_FOUND", "The referenced verification record could not be found.");
       if (verification.scanId !== scanId) throw new ApiError("INVALID_INPUT", "The verification belongs to a different scan.");
     }
+    const session = sessionForRequest(req);
+    const draft = prDraftFor(assessment, findingIds, { verification });
+    let submission = null;
+    try {
+      const prepared = await preparePullRequestSubmission({
+        assessment,
+        session,
+        destination: { baseBranch: draft.baseBranch },
+        findingIds,
+        reviewPayload: {
+          verificationSummary: verification?.summary ?? null,
+        },
+      });
+      const scopesList = String(session?.scope || "").split(/[\s,]+/).filter(Boolean);
+      const hasWriteScope = scopesList.includes("public_repo") || scopesList.includes("repo");
+      const hasWorkflowScope = scopesList.includes("workflow");
+      submission = {
+        confirmToken: prepared.confirmToken,
+        preparedAt: prepared.preparedAt,
+        contentHash: prepared.contentHash,
+        baseSha: prepared.currentBaseSha,
+        baseBranch: prepared.baseBranch,
+        hasWriteScope,
+        hasWorkflowScope,
+        hasWorkflowFiles: prepared.hasWorkflowFiles ?? false,
+        workflowFiles: prepared.workflowFiles ?? [],
+        requiresReauth: session ? !hasWriteScope : false,
+      };
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "SESSION_REQUIRES_REAUTH") {
+        res.setHeader("Set-Cookie", await invalidateSessionForRequest(req));
+      }
+      // Preview still succeeds even if unauthenticated or preparation token cannot be signed
+    }
+
     sendOk(res, {
-      draft: prDraftFor(assessment, findingIds, { verification }),
+      draft,
       mode: assessment.mode,
       verificationId: verification?.id ?? null,
       performedRemoteWrites: false,
+      submission,
     });
   }),
 );
 
-/**
- * GitHub delivery is intentionally not implemented as a write path in this
- * build. The endpoint exists so the capability state is explicit and the
- * client never has to guess: it answers 501 NOT_CONFIGURED and performs no
- * remote operation of any kind.
- */
 pullRequestsRouter.post(
   "/",
-  asyncHandler(async () => {
-    throw new ApiError(
-      "NOT_CONFIGURED",
-      "GitHub pull request delivery is disabled in this build. Export the review ZIP and open the pull request yourself; no fork, branch, commit or PR was created.",
-      { details: { capability: "github-delivery", state: "not-configured", remoteWritesPerformed: false } },
-    );
+  rateLimit({ scope: "pr-submit", limit: 10, windowMs: 60_000 }),
+  asyncHandler(async (req, res) => {
+    const session = sessionForRequest(req);
+    if (!session) {
+      throw new ApiError("AUTHENTICATION_REQUIRED", "Sign in with GitHub before submitting a pull request.");
+    }
+    if (!session.accessToken) {
+      throw new ApiError(
+        "SESSION_REQUIRES_REAUTH",
+        "Your current session does not include GitHub repository write permission. Please sign out and sign in with GitHub again to authorize public_repo access.",
+      );
+    }
+    const scopesList = String(session.scope || "").split(/[\s,]+/).filter(Boolean);
+    if (!scopesList.includes("public_repo") && !scopesList.includes("repo")) {
+      throw new ApiError(
+        "INSUFFICIENT_PERMISSION",
+        "Your current session does not include 'public_repo' permission. Please sign out and sign in with GitHub again to authorize public repository writes.",
+      );
+    }
+    const { scanId, findingIds } = readSelection(req);
+    const assessment = await loadAssessment(scanId);
+    ensureFindingSelection(assessment, findingIds);
+
+    const confirmToken = typeof req.body?.confirmToken === "string" ? req.body.confirmToken.trim() : "";
+    if (!confirmToken) {
+      throw new ApiError("INVALID_INPUT", "An explicit confirmation token is required before submitting a contribution.");
+    }
+
+    const verificationId = typeof req.body?.verificationId === "string" ? req.body.verificationId.trim() : null;
+    let verification = null;
+    if (verificationId) {
+      verification = await getVerification(verificationId);
+      if (!verification) throw new ApiError("NOT_FOUND", "The referenced verification record could not be found.");
+    }
+
+    let result;
+    try {
+      result = await submitPullRequest({
+        assessment,
+        session,
+        destination: {
+          baseBranch: req.body?.baseBranch,
+          baseSha: req.body?.baseSha,
+        },
+        findingIds,
+        reviewPayload: {
+          confirmToken,
+          preparedAt: req.body?.preparedAt,
+          contentHash: req.body?.contentHash,
+          baseSha: req.body?.baseSha,
+          title: req.body?.title,
+          body: req.body?.body,
+          branchCandidate: req.body?.branchCandidate,
+          verificationSummary: verification?.summary ?? null,
+        },
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "SESSION_REQUIRES_REAUTH") {
+        res.setHeader("Set-Cookie", await invalidateSessionForRequest(req));
+      }
+      throw err;
+    }
+
+    await savePullRequestRecord({
+      scanId,
+      findingIds,
+      contributor: session.userId,
+      prNumber: result.prNumber,
+      prUrl: result.prUrl,
+      branch: result.branch,
+      fork: result.fork,
+      upstream: result.upstream,
+      baseBranch: result.baseBranch,
+      commitSha: result.commitSha,
+      alreadyExisted: Boolean(result.alreadyExisted),
+    });
+
+    sendOk(res, result, 201);
+  }),
+);
+
+pullRequestsRouter.get(
+  "/:scanId",
+  asyncHandler(async (req, res) => {
+    const list = await listPullRequestRecords(req.params.scanId);
+    sendOk(res, { pullRequests: list });
   }),
 );
 
