@@ -20,7 +20,13 @@ export function createApp(options = {}) {
   const clientDist = options.clientDist ?? path.resolve(here, "../../client/dist");
 
   app.disable("x-powered-by");
-  app.set("trust proxy", options.trustProxy ?? false);
+  const trustProxy =
+    options.trustProxy ??
+    (process.env.TRUST_PROXY === "true" ||
+      process.env.TRUST_PROXY === "1" ||
+      Boolean(process.env.RAILWAY_ENVIRONMENT) ||
+      Boolean(process.env.RAILWAY_PROJECT_ID));
+  app.set("trust proxy", trustProxy ? 1 : false);
 
   // Security headers on every response. Framing is allowed by default so the
   // app can be embedded in a hosted preview; set FRAME_ANCESTORS="'none'" to deny.
@@ -79,8 +85,21 @@ export function createApp(options = {}) {
 
   // Production: serve the built Vite client with an SPA fallback.
   if (options.serveClient ?? fs.existsSync(path.join(clientDist, "index.html"))) {
-    app.use(express.static(clientDist, { index: "index.html", maxAge: "1h" }));
-    app.get("*splat", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+    app.use(
+      express.static(clientDist, {
+        index: "index.html",
+        maxAge: "1d",
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html")) {
+            res.setHeader("Cache-Control", "no-cache");
+          }
+        },
+      }),
+    );
+    app.get("/{*splat}", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.sendFile("index.html", { root: clientDist, dotfiles: "allow" });
+    });
   }
 
   // Central error handler: typed errors become JSON; everything else is 500.

@@ -102,6 +102,28 @@ test("unknown scan ids and unknown routes return 404 JSON", async () => {
   assert.equal(unknownRoute.status, 404);
 });
 
+test("production client serving and SPA fallback correctly returns index.html without caching", async () => {
+  const prodApp = createApp({ serveClient: true });
+  const localServer = prodApp.listen(0, "127.0.0.1");
+  await new Promise((resolve) => localServer.once("listening", resolve));
+  const port = localServer.address().port;
+  try {
+    const rootRes = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(rootRes.status, 200);
+    assert.equal(rootRes.headers.get("cache-control"), "no-cache");
+    const rootBody = await rootRes.text();
+    assert.match(rootBody, /<div id="root">/i);
+
+    const spaRes = await fetch(`http://127.0.0.1:${port}/scan/demo-test-id`);
+    assert.equal(spaRes.status, 200);
+    assert.equal(spaRes.headers.get("cache-control"), "no-cache");
+    const spaBody = await spaRes.text();
+    assert.match(spaBody, /<div id="root">/i);
+  } finally {
+    await new Promise((resolve) => localServer.close(resolve));
+  }
+});
+
 test("findings filtering, score, report and history use the stored assessment", async () => {
   const { scanId } = await createBeaconScan();
   const high = await getJson(`/api/scans/${scanId}/findings?severity=high&sort=rule`);

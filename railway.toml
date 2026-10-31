@@ -1,0 +1,13 @@
+# Railway configuration for RepoRescue (Monorepo root entry)
+# If Root Directory is left as repository root, this file guides Nixpacks to build & run RepoRescue.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm --prefix reporescue run build"
+
+[deploy]
+startCommand = "npm --prefix reporescue start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

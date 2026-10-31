@@ -34,7 +34,11 @@ export function loadConfig() {
     port,
     host: process.env.HOST ?? "0.0.0.0",
     clientOrigin: process.env.CLIENT_ORIGIN ?? "",
-    trustProxy: process.env.TRUST_PROXY === "true",
+    trustProxy:
+      process.env.TRUST_PROXY === "true" ||
+      process.env.TRUST_PROXY === "1" ||
+      Boolean(process.env.RAILWAY_ENVIRONMENT) ||
+      Boolean(process.env.RAILWAY_PROJECT_ID),
     githubToken: token,
     nodeEnv: process.env.NODE_ENV ?? "development",
   };

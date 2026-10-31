@@ -27,28 +27,28 @@ The health score evaluates **contribution readiness** across 5 categories, 21 di
 ## 2. Exact Scoring Implementation & Mathematical Formula
 
 ### Source Files & Functions
-- **Main scoring function**: `computeScore(checks)` in [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js#L4-L55)
-- **Check evaluation engine**: `evaluateRepository(snapshot)` in [`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js#L199-L1314)
-- **Shared category weights and labels**: `DIMENSION_WEIGHTS`, `DIMENSION_LABELS`, `SEVERITIES` in [`shared/constants.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/shared/constants.js#L8-L32)
+- **Main scoring function**: `computeScore(checks)` in [`server/src/analysis/score.js`](./server/src/analysis/score.js#L4-L55)
+- **Check evaluation engine**: `evaluateRepository(snapshot)` in [`server/src/analysis/rules.js`](./server/src/analysis/rules.js#L199-L1314)
+- **Shared category weights and labels**: `DIMENSION_WEIGHTS`, `DIMENSION_LABELS`, `SEVERITIES` in [`shared/constants.js`](./shared/constants.js#L8-L32)
 
 ### The Mathematical Formula
 
-The scoring formula defined in [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js#L3) is:
+The scoring formula defined in [`server/src/analysis/score.js`](./server/src/analysis/score.js#L3) is:
 
 $$\text{Total Score} = \text{round}\left(100 \times \frac{\sum \text{earned check weight}}{\sum \text{applicable check weight}}\right)$$
 
 Where:
 - $\text{round}(x) = \text{Math.round}(x)$ (standard round half-up to nearest integer).
-- In [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js#L48):
+- In [`server/src/analysis/score.js`](./server/src/analysis/score.js#L48):
   `total: totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0`
 - Category/dimension scores use the exact same ratio within each dimension:
   `score: possible > 0 ? Math.round((earned / possible) * 100) : null`
 
 ### Definition of Points
 
-1. **Earned Points** ([`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js#L227)):
+1. **Earned Points** ([`server/src/analysis/rules.js`](./server/src/analysis/rules.js#L227)):
    $$\text{earned} = \text{check.weight} \times \begin{cases} 1.0 & \text{if status} = \text{"pass"} \\ 0.5 & \text{if status} = \text{"partial"} \\ 0.0 & \text{if status} = \text{"fail"} \end{cases}$$
-2. **Applicable Points (Possible / Denominator)** ([`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js#L20-L22)):
+2. **Applicable Points (Possible / Denominator)** ([`server/src/analysis/score.js`](./server/src/analysis/score.js#L20-L22)):
    $$\text{totalPossible} = \sum_{\text{check} \in \text{checks}, \text{status} \neq \text{"not-applicable"}} \text{check.weight}$$
    Checks with status `"not-applicable"` are **completely excluded** from both the numerator and the denominator.
 
@@ -160,7 +160,7 @@ Based on the actual live scan record `2e512a07-34c8-4e60-a58d-77355f5c7f43` retr
 ## 5. The Severity System
 
 ### Assignment of Severity
-Severities (`high`, `medium`, `low`, `info`) are statically assigned in [`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js) using maintainer-impact heuristics:
+Severities (`high`, `medium`, `low`, `info`) are statically assigned in [`server/src/analysis/rules.js`](./server/src/analysis/rules.js) using maintainer-impact heuristics:
 
 - **High Severity**: Blocks first-time contributors from installing or reproducing errors safely:
   - `readme-missing`: No orientation whatsoever.
@@ -189,7 +189,7 @@ Severities (`high`, `medium`, `low`, `info`) are statically assigned in [`server
 
 ### Severity Impact on Scoring
 - **Does severity affect the score?**  
-  **No.** Severity is a property of findings, not checks. The score calculation in [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js#L21) sums only `check.earned` and `check.weight`. A high-severity finding and a low-severity finding affect the score purely through their check's assigned integer weight.
+  **No.** Severity is a property of findings, not checks. The score calculation in [`server/src/analysis/score.js`](./server/src/analysis/score.js#L21) sums only `check.earned` and `check.weight`. A high-severity finding and a low-severity finding affect the score purely through their check's assigned integer weight.
 - **Is severity rule-based or AI-generated?**  
   **100% rule-based.** Severity values are string literals defined inside each rule definition in `rules.js`. AI never assigns, overrides, or recalculates severity.
 - **Do confidence levels affect scoring?**  
@@ -199,11 +199,11 @@ Severities (`high`, `medium`, `low`, `info`) are statically assigned in [`server
 
 ## 6. Score Improvement & Verification Mechanism
 
-Score improvements are computed via **local in-memory verification** in [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js).
+Score improvements are computed via **local in-memory verification** in [`server/src/analysis/verify.js`](./server/src/analysis/verify.js).
 
 ### In-Memory Simulation vs. Repository Modification
 - RepoRescue **never** modifies the user's remote or local repository during verification.
-- In [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js#L49-L51):
+- In [`server/src/analysis/verify.js`](./server/src/analysis/verify.js#L49-L51):
   ```javascript
   const patchedSnapshot = applyPlanToSnapshot(snapshot, plan);
   const after = evaluateRepository(patchedSnapshot);
@@ -245,16 +245,16 @@ Score improvements are computed via **local in-memory verification** in [`server
 
 | Subsystem | Underlying Technology | Model / Engine | Behavior When AI is Offline |
 | :--- | :--- | :--- | :--- |
-| **Repository Scanning** | Deterministic JavaScript | [`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js) | Unaffected (does not use AI) |
-| **Readiness Scoring** | Deterministic Math | [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js) | Unaffected (does not use AI) |
-| **Patch & Diff Generation** | Deterministic Templates | [`server/src/analysis/remediations.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/remediations.js) | Unaffected (does not use AI) |
-| **Verification & Simulation**| In-memory AST/Regex Re-scan | [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js) | Unaffected (does not use AI) |
-| **Finding Explanations** | Google Gemini (Optional) | `gemini-2.0-flash` ([`server/src/ai/gemini.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/ai/gemini.js#L15)) | Seamless deterministic fallback ([`server/src/ai/explain-finding.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/ai/explain-finding.js#L143)) |
+| **Repository Scanning** | Deterministic JavaScript | [`server/src/analysis/rules.js`](./server/src/analysis/rules.js) | Unaffected (does not use AI) |
+| **Readiness Scoring** | Deterministic Math | [`server/src/analysis/score.js`](./server/src/analysis/score.js) | Unaffected (does not use AI) |
+| **Patch & Diff Generation** | Deterministic Templates | [`server/src/analysis/remediations.js`](./server/src/analysis/remediations.js) | Unaffected (does not use AI) |
+| **Verification & Simulation**| In-memory AST/Regex Re-scan | [`server/src/analysis/verify.js`](./server/src/analysis/verify.js) | Unaffected (does not use AI) |
+| **Finding Explanations** | Google Gemini (Optional) | `gemini-2.0-flash` ([`server/src/ai/gemini.js`](./server/src/ai/gemini.js#L15)) | Seamless deterministic fallback ([`server/src/ai/explain-finding.js`](./server/src/ai/explain-finding.js#L143)) |
 
 ### What Happens When AI is Unavailable?
 If `GEMINI_API_KEY` is not configured, or if the Gemini API returns a rate limit (HTTP 429), timeout, or error:
 1. `geminiAvailable()` returns `false`.
-2. [`server/src/ai/explain-finding.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/ai/explain-finding.js#L143-L147) automatically triggers `deterministicExplanation(finding, repositoryName)`.
+2. [`server/src/ai/explain-finding.js`](./server/src/ai/explain-finding.js#L143-L147) automatically triggers `deterministicExplanation(finding, repositoryName)`.
 3. The explanation is assembled directly from the rule's verified `summary`, `whyItMatters`, `evidence`, and `recommendation`.
 4. The response sets `source: "deterministic-fallback"` and `model: "deterministic-rule-engine"`.
 5. **No user feature breaks, and no scan or scoring operation fails.**
@@ -266,15 +266,15 @@ If `GEMINI_API_KEY` is not configured, or if the Gemini API returns a rate limit
 RepoRescue’s code strictly confines its analysis to static file-level indicators. Supported by code-level checks and verification contracts, RepoRescue **does NOT**:
 
 1. **Run Repository Code**:
-   [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js#L76): *"RepoRescue never installs dependencies or runs repository code. A green result here is not proof that the project works."*
+   [`server/src/analysis/verify.js`](./server/src/analysis/verify.js#L76): *"RepoRescue never installs dependencies or runs repository code. A green result here is not proof that the project works."*
 2. **Execute Automated Tests**:
    Checks only look for presence of test files, scripts, or runner dependencies. It never executes `npm test`, `pytest`, `cargo test`, etc.
 3. **Audit Dependency Vulnerabilities**:
    Manifests are inspected for ecosystem identification and test dependencies. No CVE database lookup, `npm audit`, or Dependabot API is queried.
 4. **Inspect Runtime Security or Environment Values**:
-   [`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js#L1299): Environment files are checked by filename only; *"contents are deliberately not read or displayed"*. No runtime pen-testing is performed.
+   [`server/src/analysis/rules.js`](./server/src/analysis/rules.js#L1299): Environment files are checked by filename only; *"contents are deliberately not read or displayed"*. No runtime pen-testing is performed.
 5. **Verify Live CI Execution**:
-   [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js#L81): CI checks verify only that a YAML workflow exists and contains test regexes. Live GitHub Actions runs are reported as `state: "not-run"`.
+   [`server/src/analysis/verify.js`](./server/src/analysis/verify.js#L81): CI checks verify only that a YAML workflow exists and contains test regexes. Live GitHub Actions runs are reported as `state: "not-run"`.
 6. **Measure Production Reliability**:
    Does not measure uptime, latency, memory consumption, or scalability.
 
@@ -284,10 +284,10 @@ RepoRescue’s code strictly confines its analysis to static file-level indicato
 
 | Concept | File Location | Key Identifiers / Exports |
 | :--- | :--- | :--- |
-| **Main Scoring Function** | [`server/src/analysis/score.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/score.js) | `computeScore`, `SCORE_FORMULA`, `summariseFindings` |
-| **Rule & Check Definitions** | [`server/src/analysis/rules.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/rules.js) | `evaluateRepository`, `buildContext`, `DOC-01`...`HYG-05` |
-| **Verification Engine** | [`server/src/analysis/verify.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/verify.js) | `runLocalVerification`, `LOCAL_CHECKS` |
-| **Remediation Engine** | [`server/src/analysis/remediations.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/analysis/remediations.js) | `buildRemediationPlan`, `applyPlanToSnapshot` |
-| **Constants & Weights** | [`shared/constants.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/shared/constants.js) | `DIMENSION_WEIGHTS`, `DIMENSION_LABELS`, `SEVERITIES` |
-| **AI Integration** | [`server/src/ai/gemini.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/ai/gemini.js) | `geminiAvailable`, `geminiGenerate`, `GEMINI_MODEL` |
-| **AI Finding Explanations** | [`server/src/ai/explain-finding.js`](file:///Users/ayushmansharma/.gemini/antigravity/scratch/reporescue-audit/reporescue/server/src/ai/explain-finding.js) | `explainFinding`, `deterministicExplanation` |
+| **Main Scoring Function** | [`server/src/analysis/score.js`](./server/src/analysis/score.js) | `computeScore`, `SCORE_FORMULA`, `summariseFindings` |
+| **Rule & Check Definitions** | [`server/src/analysis/rules.js`](./server/src/analysis/rules.js) | `evaluateRepository`, `buildContext`, `DOC-01`...`HYG-05` |
+| **Verification Engine** | [`server/src/analysis/verify.js`](./server/src/analysis/verify.js) | `runLocalVerification`, `LOCAL_CHECKS` |
+| **Remediation Engine** | [`server/src/analysis/remediations.js`](./server/src/analysis/remediations.js) | `buildRemediationPlan`, `applyPlanToSnapshot` |
+| **Constants & Weights** | [`shared/constants.js`](./shared/constants.js) | `DIMENSION_WEIGHTS`, `DIMENSION_LABELS`, `SEVERITIES` |
+| **AI Integration** | [`server/src/ai/gemini.js`](./server/src/ai/gemini.js) | `geminiAvailable`, `geminiGenerate`, `GEMINI_MODEL` |
+| **AI Finding Explanations** | [`server/src/ai/explain-finding.js`](./server/src/ai/explain-finding.js) | `explainFinding`, `deterministicExplanation` |

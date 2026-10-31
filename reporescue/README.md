@@ -10,7 +10,7 @@
   - Ayushman Sharma
   - Shreyas Gondkar
   - Devansh Bansal
-- **Pitch Deck**: 7-slide Hackathon Presentation ([RepoRescue — Hackathon Pitch](file:///Users/ayushmansharma/.gemini/antigravity/brain/2901745c-6fcf-4321-9066-b4327debc70f/.user_uploaded/media_1793409964393_fea383b1.pdf))
+- **Pitch Deck**: 7-slide Hackathon Presentation ([RepoRescue — Hackathon Pitch](./RepoRescue.pptx))
 
 ---
 
@@ -124,6 +124,17 @@ npm test                         # 109 unit + integration tests (node --test)
 npm run lint                     # ESLint verification across client, server, shared, tests
 npm run verify                   # lint → test → build (full CI verification pass)
 ```
+
+---
+
+## Production Deployment (Railway)
+
+RepoRescue is fully pre-configured for production hosting on **Railway**. Refer to the comprehensive [Railway Production Deployment Guide](./RAILWAY_DEPLOYMENT.md) for step-by-step instructions covering:
+- **Zero-Database Persistent Storage**: Attach a Railway Volume at `/data` with `REPORESCUE_DATA_DIR=/data`.
+- **Token & Session Cryptography**: Generate 256-bit secrets via `openssl rand -hex 32` for `REPORESCUE_SESSION_SECRET` and `REPORESCUE_TOKEN_ENCRYPTION_KEY`.
+- **SPA Fallback Routing**: Built-in Express 5 SPA fallback with client cache headers.
+- **Reverse Proxy**: Native `trust proxy` support for Railway's edge router.
+- **GitHub OAuth App**: Step-by-step guide to configure GitHub OAuth for user-directed fork PR delivery.
 
 ---
 
